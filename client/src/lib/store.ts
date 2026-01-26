@@ -11,12 +11,14 @@ export interface Order {
   status: OrderStatus;
   price: number;
   timestamp: Date;
+  trackingToken: string;
 }
 
 interface AppState {
   orders: Order[];
   balance: number;
-  addOrder: (order: Omit<Order, 'id' | 'status' | 'timestamp'>) => void;
+  addOrder: (order: Omit<Order, 'id' | 'status' | 'timestamp' | 'trackingToken'>) => string;
+  markAsDelivering: (id: string) => void;
   markAsDelivered: (id: string) => void;
   withdrawFunds: () => void;
 }
@@ -31,7 +33,8 @@ export const useStore = create<AppState>((set) => ({
       note: 'Portail bleu',
       status: 'pending',
       price: 5000,
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 mins ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 30),
+      trackingToken: 'TRK-WEMBA-123',
     },
     {
       id: 'ORD-002',
@@ -40,31 +43,33 @@ export const useStore = create<AppState>((set) => ({
       address: 'Marché de la Liberté, Masina',
       status: 'delivered',
       price: 15000,
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    },
-    {
-      id: 'ORD-003',
-      recipientName: 'Fally Ipupa',
-      recipientPhone: '0823456789',
-      address: 'Hotel Memling, Kinshasa',
-      note: 'Reception',
-      status: 'pending',
-      price: 7500,
-      timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 mins ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
+      trackingToken: 'TRK-MONIQUE-456',
     },
   ],
   balance: 15000,
-  addOrder: (orderData) =>
+  addOrder: (orderData) => {
+    const id = `ORD-${Math.floor(Math.random() * 10000)}`;
+    const trackingToken = `TRK-${Math.random().toString(36).substring(7).toUpperCase()}`;
     set((state) => ({
       orders: [
         {
           ...orderData,
-          id: `ORD-${Math.floor(Math.random() * 10000)}`,
+          id,
           status: 'pending',
           timestamp: new Date(),
+          trackingToken,
         },
         ...state.orders,
       ],
+    }));
+    return trackingToken;
+  },
+  markAsDelivering: (id) =>
+    set((state) => ({
+      orders: state.orders.map((o) =>
+        o.id === id ? { ...o, status: 'delivering' } : o
+      ),
     })),
   markAsDelivered: (id) =>
     set((state) => {
