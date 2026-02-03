@@ -3,156 +3,247 @@ import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, MapPin, Truck, CheckCircle2, Clock, Package, Banknote, Wallet } from "lucide-react";
+import { Search, MapPin, Truck, CheckCircle2, Clock, Package, Banknote, Wallet, Phone, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import customerHero from "@/assets/customer-hero.png";
 import { cn } from "@/lib/utils";
+import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix icons for tracking map
+// @ts-ignore
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+const courierIcon = new L.Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+});
 
 export default function TrackingPage() {
   const [location] = useLocation();
   const [token, setToken] = useState("");
-  const [searchResult, setSearchResult] = useState<any>(null);
   const { orders } = useStore();
+  const [foundOrder, setFoundOrder] = useState<any>(null);
+  const [courierPos, setCourierPos] = useState<[number, number] | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get("token");
-    if (urlToken) {
-      setToken(urlToken);
-      const order = orders.find(o => o.trackingToken === urlToken || o.id === urlToken);
-      if (order) setSearchResult(order);
+    const t = params.get("token");
+    if (t) {
+      setToken(t);
+      handleSearch(t);
     }
   }, [orders]);
 
-  const handleSearch = () => {
-    const order = orders.find(o => o.trackingToken === token || o.id === token);
-    setSearchResult(order || "not_found");
+  // Simulate courier movement if delivering
+  useEffect(() => {
+    if (foundOrder?.status === 'delivering' && foundOrder.lat && foundOrder.lng) {
+      const startPos: [number, number] = [foundOrder.lat + 0.01, foundOrder.lng + 0.01];
+      setCourierPos(startPos);
+      
+      const interval = setInterval(() => {
+        setCourierPos(prev => {
+          if (!prev) return startPos;
+          const targetLat = foundOrder.lat!;
+          const targetLng = foundOrder.lng!;
+          return [
+            prev[0] + (targetLat - prev[0]) * 0.1,
+            prev[1] + (targetLng - prev[1]) * 0.1
+          ];
+        });
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [foundOrder]);
+
+  const handleSearch = (searchToken?: string) => {
+    const t = searchToken || token;
+    const order = orders.find((o) => o.trackingToken === t || o.id === t);
+    setFoundOrder(order || null);
   };
+
+  const steps = [
+    { status: "pending", label: "Préparation", icon: Clock },
+    { status: "delivering", label: "En route", icon: Truck },
+    { status: "delivered", label: "Livré", icon: CheckCircle2 },
+  ];
 
   return (
     <div className="space-y-6 pb-20">
-      <div className="relative h-56 rounded-[3rem] overflow-hidden shadow-2xl mb-8 group">
-        <img src={customerHero} alt="Tracking" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-        <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/40 to-transparent flex flex-col justify-end p-10 text-white">
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-            <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">SUIVI COLIS</h2>
-            <p className="text-[10px] font-black opacity-80 uppercase tracking-[0.3em] mt-2">Logistique Kinshasa</p>
-          </motion.div>
+      <div className="relative h-44 rounded-[2.5rem] overflow-hidden shadow-2xl group">
+        <img src={customerHero} alt="Tracking" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-secondary/90 via-secondary/40 to-transparent flex items-center p-8">
+          <div className="space-y-2">
+            <h2 className="text-white text-4xl font-black italic tracking-tighter uppercase leading-none">SUIVI</h2>
+            <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Kolisa Live Tracking</p>
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-3 px-2">
-        <div className="relative flex-1 group">
-          <Search className="absolute left-5 top-4.5 h-5 w-5 text-secondary/30 group-focus-within:text-secondary transition-colors" />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-3.5 h-4 w-4 text-secondary/30" />
           <Input 
-            placeholder="N° de suivi (TRK...)" 
-            className="pl-14 h-15 bg-white shadow-2xl border-none rounded-2xl focus-visible:ring-secondary text-lg font-bold" 
+            placeholder="Code de suivi (ex: TRK-...)" 
             value={token}
-            onChange={(e) => setToken(e.target.value)}
+            onChange={(e) => setToken(e.target.value.toUpperCase())}
+            className="pl-12 h-13 bg-white border-none rounded-2xl shadow-sm font-bold"
           />
         </div>
-        <Button onClick={handleSearch} className="h-15 px-10 bg-secondary hover:bg-secondary/90 text-white rounded-2xl shadow-xl shadow-secondary/30 font-black">
-          GO
+        <Button onClick={() => handleSearch()} className="h-13 px-6 bg-primary text-primary-foreground rounded-2xl shadow-lg">
+          Rechercher
         </Button>
       </div>
 
       <AnimatePresence mode="wait">
-        {searchResult && searchResult !== "not_found" && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
+        {foundOrder ? (
+          <motion.div
+            key={foundOrder.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             className="space-y-6"
           >
-            <Card className="border-none shadow-2xl overflow-hidden bg-white rounded-[2.5rem]">
-               <CardContent className="p-8">
-                  <div className="flex items-center justify-between mb-10">
-                     <div className="space-y-1">
-                       <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Code Commande</p>
-                       <Badge className="bg-primary/10 text-primary border-none font-mono text-xl py-1 px-5 rounded-xl">#{searchResult.id}</Badge>
-                     </div>
-                     <div className="text-right space-y-1">
-                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Statut</p>
-                        <Badge className="bg-secondary text-white uppercase text-[10px] py-1 px-3 rounded-full">{searchResult.status}</Badge>
-                     </div>
+            {/* Live Map Tracking */}
+            {foundOrder.lat && foundOrder.lng && (
+              <Card className="rounded-[2.5rem] overflow-hidden h-80 shadow-xl border-4 border-white relative z-0">
+                <MapContainer 
+                  center={[foundOrder.lat, foundOrder.lng]} 
+                  zoom={14} 
+                  className="h-full w-full"
+                >
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <Marker position={[foundOrder.lat, foundOrder.lng]} />
+                  {courierPos && (
+                    <>
+                      <Marker position={courierPos} icon={courierIcon} />
+                      <Polyline positions={[courierPos, [foundOrder.lat, foundOrder.lng]]} color="#facc15" dashArray="10, 10" />
+                    </>
+                  )}
+                </MapContainer>
+                {foundOrder.status === 'delivering' && (
+                  <div className="absolute top-4 left-4 z-[400] bg-primary text-primary-foreground px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg animate-pulse">
+                    Livreur en mouvement
                   </div>
+                )}
+              </Card>
+            )}
 
-                  <div className="grid grid-cols-2 gap-4 mb-8">
-                     <div className="p-4 bg-muted/20 rounded-2xl border border-border/50">
-                        <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">Paiement</p>
-                        <div className="flex items-center gap-2">
-                           {searchResult.paymentMethod === 'cod' ? <Banknote className="h-4 w-4 text-green-600" /> : <Wallet className="h-4 w-4 text-blue-600" />}
-                           <span className="text-xs font-black uppercase">{searchResult.paymentMethod === 'cod' ? 'Cash Delivery' : 'Mobile Money'}</span>
+            {/* Courier Info (Security) */}
+            {foundOrder.status !== 'pending' && (
+              <Card className="border-none shadow-xl bg-secondary text-white rounded-[2rem] overflow-hidden">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-2xl bg-white/10 flex items-center justify-center overflow-hidden border border-white/20">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Courier1" alt="Livreur" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Votre Livreur</p>
+                    <h3 className="text-lg font-black italic tracking-tight uppercase">Jean-Claude L.</h3>
+                    <p className="text-[10px] font-bold text-primary italic">Plaque: KIN 4482 AB</p>
+                  </div>
+                  <Button size="icon" className="rounded-xl bg-white text-secondary hover:bg-white/90">
+                    <Phone className="h-5 w-5" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="border-none shadow-xl bg-white rounded-[2.5rem] overflow-hidden">
+              <CardContent className="p-8 space-y-8">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Code de suivi</p>
+                    <h3 className="text-xl font-black font-mono text-secondary">{foundOrder.trackingToken}</h3>
+                  </div>
+                  <Badge className={cn(
+                    "px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg",
+                    foundOrder.status === 'delivered' ? "bg-green-500 text-white" : 
+                    foundOrder.status === 'delivering' ? "bg-blue-500 text-white" : "bg-amber-500 text-white"
+                  )}>
+                    {foundOrder.status === 'delivered' ? 'Livré' : foundOrder.status === 'delivering' ? 'En route' : 'En attente'}
+                  </Badge>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-slate-100" />
+                  <div className="space-y-8">
+                    {steps.map((step, idx) => {
+                      const Icon = step.icon;
+                      const isCompleted = steps.findIndex(s => s.status === foundOrder.status) >= idx;
+                      return (
+                        <div key={step.status} className="relative flex items-center gap-6">
+                          <div className={cn(
+                            "z-10 w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg",
+                            isCompleted ? "bg-primary text-primary-foreground scale-110" : "bg-white text-slate-300 border-2 border-slate-100"
+                          )}>
+                            <Icon className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className={cn(
+                              "text-sm font-black uppercase tracking-tight",
+                              isCompleted ? "text-secondary" : "text-slate-300"
+                            )}>{step.label}</p>
+                            {isCompleted && step.status === foundOrder.status && (
+                              <p className="text-[10px] font-bold text-muted-foreground italic">Mise à jour: Il y a 5 min</p>
+                            )}
+                          </div>
                         </div>
-                     </div>
-                     <div className="p-4 bg-muted/20 rounded-2xl border border-border/50">
-                        <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">À Encaisser</p>
-                        <p className="text-sm font-black text-secondary">{searchResult.articlePrice.toLocaleString()} FC</p>
-                     </div>
+                      );
+                    })}
                   </div>
+                </div>
 
-                  <div className="space-y-10 relative">
-                     <div className="absolute left-[17px] top-2 bottom-2 w-0.5 bg-muted/50" />
-                     
-                     <TrackingStep 
-                        icon={Clock} 
-                        title="Commande reçue" 
-                        desc="Le vendeur a validé la course" 
-                        active={true}
-                     />
-                     <TrackingStep 
-                        icon={Truck} 
-                        title="Motard en route" 
-                        desc="Le colis est transporté" 
-                        active={searchResult.status !== 'pending'}
-                     />
-                     <TrackingStep 
-                        icon={CheckCircle2} 
-                        title="Livré" 
-                        desc="Course terminée" 
-                        active={searchResult.status === 'delivered'}
-                     />
+                {foundOrder.status === 'delivering' && (
+                  <div className="p-6 bg-primary/5 border-2 border-primary/20 rounded-3xl flex items-center gap-4 border-dashed">
+                    <ShieldCheck className="h-8 w-8 text-primary" />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-secondary">Code de Validation</p>
+                      <p className="text-xs font-bold text-muted-foreground">Préparez le code PIN reçu par SMS pour confirmer la réception.</p>
+                    </div>
                   </div>
+                )}
 
-                  <div className="mt-10 pt-6 border-t border-dashed border-border flex items-center gap-4">
-                     <div className="bg-secondary/10 p-4 rounded-2xl text-secondary">
-                        <MapPin className="h-6 w-6" />
-                     </div>
-                     <div>
-                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Destination</p>
-                        <p className="font-bold text-secondary text-sm">{searchResult.address}</p>
-                     </div>
+                <div className="pt-6 border-t border-slate-100 grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Paiement</p>
+                    <div className="flex items-center gap-2">
+                      {foundOrder.paymentMethod === 'cod' ? <Banknote className="h-4 w-4 text-green-600" /> : <Wallet className="h-4 w-4 text-blue-600" />}
+                      <span className="text-xs font-black uppercase">{foundOrder.paymentMethod === 'cod' ? 'Cash (COD)' : 'Mobile Money'}</span>
+                    </div>
                   </div>
-               </CardContent>
+                  <div className="space-y-1 text-right">
+                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Total à payer</p>
+                    <p className="text-lg font-black text-secondary">{(foundOrder.articlePrice + foundOrder.price).toLocaleString()} FC</p>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           </motion.div>
-        )}
-
-        {searchResult === "not_found" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 bg-white/50 rounded-3xl border-2 border-dashed border-muted">
-            <Package className="h-20 w-20 mx-auto mb-4 text-muted-foreground opacity-10" />
-            <p className="font-black text-secondary uppercase tracking-widest">Colis introuvable</p>
+        ) : token && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12 space-y-4"
+          >
+            <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto border-2 border-slate-100">
+              <Package className="h-10 w-10 text-slate-200" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-lg font-black text-secondary uppercase italic">Colis introuvable</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Vérifiez votre code de suivi</p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-function TrackingStep({ icon: Icon, title, desc, active }: any) {
-  return (
-    <div className="flex gap-6 items-start relative z-10">
-       <div className={cn(
-         "w-9 h-9 rounded-full flex items-center justify-center transition-all duration-700",
-         active ? "bg-secondary text-white shadow-lg shadow-secondary/30 scale-110" : "bg-white text-muted-foreground border-2 border-muted"
-       )}>
-          <Icon className="h-5 w-5" />
-       </div>
-       <div>
-          <h4 className={cn("text-sm font-black uppercase tracking-tight", active ? "text-secondary" : "text-muted-foreground")}>{title}</h4>
-          <p className="text-xs text-muted-foreground/60 font-bold">{desc}</p>
-       </div>
     </div>
   );
 }

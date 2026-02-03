@@ -1,0 +1,64 @@
+1. Architecture des Portails (Les 3 Vues)
+L'application se divise en trois interfaces distinctes connectées à une base de données centrale.
+
+A. Le Portail Vendeur (Dashboard Business)
+Connexion simplifiée : Numéro de téléphone + Code SMS (pas de mot de passe compliqué).
+
+Enregistrement de colis :
+
+Saisie du nom/téléphone du client.
+
+Sélection de la commune via menu déroulant (pour prix fixe automatique).
+
+Option "Cash on Delivery" : Montant à récupérer chez le client.
+
+Gestion des revenus : Solde affiché en temps réel (argent encaissé par les livreurs pour lui) avec bouton "Demander retrait Mobile Money".
+
+Statut des stocks : Possibilité de voir combien de colis sont "En attente", "En cours" ou "Livrés".
+
+B. Le Portail Livreur (L'Outil de Terrain)
+Mur des missions : Liste des colis disponibles à proximité (rayon GPS).
+
+Détails de navigation : Bouton direct pour appeler le client ou ouvrir l'itinéraire sur la carte.
+
+Validation par Code PIN : Pour confirmer la livraison, le livreur doit entrer un code de 4 chiffres que le client reçoit par SMS. C’est la garantie anti-vol.
+
+Portefeuille livreur : Historique de ses courses et de ses commissions gagnées.
+
+C. Le Portail Client (L'Expérience de Suivi)
+Zéro compte : Le client ne crée pas de compte. Il reçoit un lien unique kolisa.cd/track/ID.
+
+Tracking Live : Carte interactive montrant le mouvement du livreur.
+
+Profil Livreur : Photo, nom et numéro de plaque de la moto (Sécurité accrue).
+
+2. Processus Opérationnel détaillé (Le Flow)
+Vente : Une vendeuse conclut une vente sur TikTok.
+
+Requête : Elle remplit le formulaire sur la PWA Kolisa.
+
+Appariement : Le système envoie une notification aux 3 livreurs les plus proches. Le premier qui accepte prend la course.
+
+Ramassage : Le livreur récupère le colis. Le vendeur clique sur "Colis récupéré" dans son app.
+
+Transit : Le client reçoit automatiquement un SMS : "Votre colis est en route. Suivez-le ici : [Lien]".
+
+Paiement : Le livreur encaisse l'argent (Prix de l'article + Livraison).
+
+Clôture : Le livreur entre le code PIN du client. Le solde du vendeur est crédité virtuellement dans l'app instantanément.
+
+3. Fonctionnalités "Compétitivité ++" (Le "Killer" de WhatsApp)
+🛠 Gestion de la Basse Connexion
+Offline First : Le livreur peut valider une livraison même s'il n'a plus de réseau dans un sous-sol. L'app synchronise dès que la 4G revient.
+
+Images compressées : Les preuves de livraison (photos) sont réduites à 50 Ko pour économiser le forfait.
+
+💰 Système de Paiement Hybride
+Algorithme de calcul de prix : Calcul automatique selon la distance entre le point A (Vendeur) et le point B (Client) pour éviter les discussions infinies sur le prix du transport.
+
+Réserve de garantie : Le système bloque une petite caution sur le compte du livreur pour s'assurer qu'il ramène l'argent liquide encaissé.
+
+📢 Système de Notifications
+Notifications Push (PWA) : Alertes instantanées pour les nouvelles missions.
+
+SMS Gateway : Utilisation d'une API (comme Twilio ou une passerelle locale) pour envoyer les liens de suivi aux clients qui n'ont pas internet.
