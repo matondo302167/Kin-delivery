@@ -8,8 +8,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Phone, User, PackagePlus, Navigation, Eye, Wallet, Banknote } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { MapPin, Phone, User, PackagePlus, Eye, Wallet, Banknote } from "lucide-react";
+import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import sellerHero from "@/assets/seller-hero.png";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -58,7 +58,7 @@ export default function OrderPage() {
   const { addOrder, orders } = useStore();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [selectedPos, setSelectedPos] = useState({ lat: -4.325, lng: 15.3222 }); // Kinshasa center
+  const [selectedPos, setSelectedPos] = useState({ lat: -4.325, lng: 15.3222 });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -180,152 +180,6 @@ export default function OrderPage() {
             <p className="text-[8px] font-bold text-muted-foreground mt-1">Déplacez et cliquez pour choisir l'adresse</p>
           </div>
         </Card>
-
-        <Card className="w-full border-none shadow-2xl bg-white rounded-[2.5rem]">
-          <CardContent className="p-8">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="recipientName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Client</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <User className="absolute left-4 top-3.5 h-4 w-4 text-secondary/30" />
-                            <Input placeholder="Nom du client" className="pl-12 h-13 bg-secondary/5 border-none rounded-2xl focus-visible:ring-primary font-bold" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="recipientPhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Téléphone</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Phone className="absolute left-4 top-3.5 h-4 w-4 text-secondary/30" />
-                            <Input placeholder="08..." className="pl-12 h-13 bg-secondary/5 border-none rounded-2xl focus-visible:ring-primary font-bold" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Adresse de livraison</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <MapPin className="absolute left-4 top-3.5 h-4 w-4 text-secondary/30" />
-                          <Input placeholder="Sélectionnez sur la carte ou tapez ici..." className="pl-12 h-13 bg-secondary/5 border-none rounded-2xl focus-visible:ring-primary font-bold" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="p-6 bg-secondary/5 rounded-3xl space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-secondary text-center">Paiement & Prix</p>
-                  
-                  <FormField
-                    control={form.control}
-                    name="paymentMethod"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex gap-4"
-                          >
-                            <FormItem className="flex-1">
-                              <FormControl>
-                                <RadioGroupItem value="cod" className="sr-only" />
-                              </FormControl>
-                              <FormLabel className={cn(
-                                "flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all",
-                                field.value === "cod" ? "border-primary bg-primary/10 text-primary" : "border-transparent bg-white shadow-sm"
-                              )}>
-                                <Banknote className="h-6 w-6 mb-1" />
-                                <span className="text-[10px] font-black uppercase">Cash (COD)</span>
-                              </FormLabel>
-                            </FormItem>
-                            <FormItem className="flex-1">
-                              <FormControl>
-                                <RadioGroupItem value="mobile_money" className="sr-only" />
-                              </FormControl>
-                              <FormLabel className={cn(
-                                "flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all",
-                                field.value === "mobile_money" ? "border-secondary bg-secondary/10 text-secondary" : "border-transparent bg-white shadow-sm"
-                              )}>
-                                <Wallet className="h-6 w-6 mb-1" />
-                                <span className="text-[10px] font-black uppercase">Mobile Money</span>
-                              </FormLabel>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="articlePrice"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[9px] font-black uppercase text-muted-foreground ml-1">À Encaisser</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="Article" className="h-12 bg-white border-none rounded-xl font-black text-secondary" {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[9px] font-black uppercase text-muted-foreground ml-1">Frais Liv.</FormLabel>
-                          <FormControl>
-                            <Input type="number" className="h-12 bg-white border-none rounded-xl font-black text-primary" {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase tracking-[0.2em] rounded-3xl shadow-2xl shadow-primary/30 text-lg group">
-                  LANCER LA COURSE
-                  <PackagePlus className="ml-3 h-6 w-6 group-hover:rotate-12 transition-transform" />
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function Badge({ children, className }: any) {
-  return <span className={cn("px-2 py-0.5 rounded-full", className)}>{children}</span>;
-}
-
 
         <Card className="w-full border-none shadow-2xl bg-white rounded-[2.5rem]">
           <CardContent className="p-8">
