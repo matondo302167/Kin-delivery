@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import heroMap from "@/assets/hero-map-illustration.png";
+import heroCourier from "@/assets/hero-courier-illustration.png";
 import courierIllustration from "@/assets/courier-illustration.png";
 import sellerIllustration from "@/assets/seller-illustration.png";
 
@@ -16,8 +16,8 @@ export default function WelcomePage() {
   const [trackingCode, setTrackingCode] = useState("");
 
   const handleTrack = () => {
-    if (trackingCode) {
-      setLocation(`/tracking?token=${trackingCode}`);
+    if (trackingCode.trim()) {
+      window.location.href = `/tracking?token=${trackingCode.trim().toUpperCase()}`;
     }
   };
 
@@ -96,9 +96,9 @@ export default function WelcomePage() {
           <motion.div 
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
-            className="rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
+            className="rounded-3xl overflow-hidden"
           >
-            <img src={heroMap} alt="Abstract Map" className="w-full h-auto object-cover" />
+            <img src={heroCourier} alt="Livreur Hero" className="w-full h-auto object-contain" />
           </motion.div>
           {/* Decorative floating element */}
           <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl border border-gray-100 hidden md:block">
