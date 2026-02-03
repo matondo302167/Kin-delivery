@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, MapPin, Phone, Truck, CheckCircle2, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import courierHero from "@/assets/courier-hero.png";
 
 export default function DashboardPage() {
   const { orders, markAsDelivered, markAsDelivering } = useStore();
@@ -16,9 +17,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-3xl font-display font-black text-secondary italic uppercase tracking-tighter">Missions Motard</h2>
-        <p className="text-muted-foreground font-medium text-xs tracking-widest uppercase">Prêt pour la course ?</p>
+      <div className="relative h-32 rounded-3xl overflow-hidden shadow-xl mb-4">
+        <img src={courierHero} alt="Courier" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-transparent flex items-center p-8">
+           <h2 className="text-primary-foreground text-2xl font-black italic tracking-tighter uppercase">MISSIONS MOTARD</h2>
+        </div>
       </div>
 
       <Tabs defaultValue="available" className="w-full">
@@ -35,29 +38,14 @@ export default function DashboardPage() {
         </TabsList>
 
         <TabsContent value="available" className="space-y-4 mt-6">
-          {pendingOrders.length === 0 ? (
-            <EmptyState icon={Truck} text="Pas de courses disponibles." />
-          ) : (
-            pendingOrders.map(order => (
-              <MotardOrderCard 
-                key={order.id} 
-                order={order} 
-                actionLabel="Prendre la course"
-                onAction={() => markAsDelivering(order.id)}
-              />
-            ))
-          )}
+          {pendingOrders.map(order => (
+            <MotardOrderCard key={order.id} order={order} actionLabel="Prendre" onAction={() => markAsDelivering(order.id)} />
+          ))}
         </TabsContent>
 
         <TabsContent value="active" className="space-y-4 mt-6">
           {deliveringOrders.map(order => (
-            <MotardOrderCard 
-              key={order.id} 
-              order={order} 
-              actionLabel="Livraison Terminée"
-              onAction={() => markAsDelivered(order.id)}
-              variant="active"
-            />
+            <MotardOrderCard key={order.id} order={order} actionLabel="Terminer" onAction={() => markAsDelivered(order.id)} variant="active" />
           ))}
         </TabsContent>
 
@@ -67,15 +55,6 @@ export default function DashboardPage() {
           ))}
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-function EmptyState({ icon: Icon, text }: any) {
-  return (
-    <div className="text-center py-16 bg-white/50 border-2 border-dashed border-muted rounded-3xl">
-      <Icon className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-20" />
-      <p className="text-muted-foreground font-bold tracking-tight">{text}</p>
     </div>
   );
 }
@@ -93,50 +72,14 @@ function MotardOrderCard({ order, onAction, actionLabel, variant = 'available' }
             {formatDistanceToNow(order.timestamp, { addSuffix: true, locale: fr })}
           </span>
         </div>
-
-        <div className="space-y-4">
-          <div className="flex gap-4">
-             <div className="bg-primary/10 p-3 rounded-2xl h-fit">
-                <MapPin className="h-5 w-5 text-primary" />
-             </div>
-             <div>
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Lieu de livraison</p>
-                <p className="font-bold text-secondary text-sm leading-tight mt-0.5">{order.address}</p>
-             </div>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
-             <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-secondary/10 flex items-center justify-center">
-                   <Phone className="h-4 w-4 text-secondary" />
-                </div>
-                <div>
-                   <p className="font-black text-[10px] uppercase tracking-tighter text-muted-foreground">{order.recipientName}</p>
-                   <p className="text-xs font-bold font-mono">{order.recipientPhone}</p>
-                </div>
-             </div>
-             <div className="text-right">
-                <p className="text-[10px] font-black uppercase text-muted-foreground">Gain</p>
-                <p className="font-black text-secondary">{order.price.toLocaleString()} FC</p>
-             </div>
-          </div>
+        <div className="space-y-2">
+           <p className="font-bold text-secondary text-sm leading-tight">{order.address}</p>
+           <p className="text-xs font-bold text-muted-foreground uppercase">{order.recipientName} • {order.recipientPhone}</p>
         </div>
-
         {onAction && (
-          <Button 
-            onClick={onAction} 
-            className={`w-full h-14 mt-5 rounded-2xl font-black uppercase tracking-widest flex justify-between px-6 transition-all active:scale-[0.98] ${variant === 'active' ? 'bg-secondary text-white' : 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'}`}
-          >
-            {actionLabel}
-            <ChevronRight className="h-5 w-5" />
+          <Button onClick={onAction} className="w-full h-11 mt-4 rounded-xl font-black uppercase tracking-widest bg-primary text-primary-foreground shadow-lg shadow-primary/10">
+            {actionLabel} <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
-        )}
-        
-        {variant === 'done' && (
-           <div className="mt-5 flex items-center justify-center gap-2 text-secondary font-black uppercase text-xs tracking-widest bg-secondary/5 py-4 rounded-2xl">
-              <CheckCircle2 className="h-5 w-5" />
-              Course Terminée
-           </div>
         )}
       </CardContent>
     </Card>

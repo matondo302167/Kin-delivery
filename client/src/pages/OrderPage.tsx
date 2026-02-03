@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Phone, User, PackagePlus, Copy } from "lucide-react";
+import { MapPin, Phone, User, PackagePlus, Copy, Map as MapIcon } from "lucide-react";
+import sellerHero from "@/assets/seller-hero.png";
 
 const formSchema = z.object({
   recipientName: z.string().min(2, "Nom requis"),
@@ -46,39 +47,21 @@ export default function OrderPage() {
     form.reset();
   }
 
-  const copyToken = () => {
-    if (lastToken) {
-      navigator.clipboard.writeText(lastToken);
-      toast({ title: "Copié !", description: "Code de suivi copié dans le presse-papier." });
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-3xl font-display font-black text-secondary italic">ESPACE VENDEUR</h2>
-        <p className="text-muted-foreground font-medium uppercase tracking-tighter text-xs">Vendez, on livre.</p>
+      <div className="relative h-32 rounded-3xl overflow-hidden shadow-xl mb-4 group">
+        <img src={sellerHero} alt="Seller" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+        <div className="absolute inset-0 bg-gradient-to-r from-secondary/80 to-transparent flex items-center p-8">
+           <h2 className="text-white text-2xl font-black italic tracking-tighter">ESPACE VENDEUR</h2>
+        </div>
       </div>
 
-      {lastToken && (
-        <Card className="bg-primary/10 border-2 border-primary/20 border-dashed animate-in zoom-in-95">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase text-primary tracking-widest">Dernier Tracking</p>
-              <p className="text-lg font-mono font-bold">{lastToken}</p>
-            </div>
-            <Button size="icon" variant="ghost" onClick={copyToken} className="text-primary hover:bg-primary/20">
-              <Copy className="h-5 w-5" />
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className="border-none shadow-2xl shadow-secondary/10 overflow-hidden bg-white/50 backdrop-blur-sm">
-        <CardContent className="p-8">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-4">
+      <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 items-start">
+        {/* Form Column */}
+        <Card className="w-full border-none shadow-2xl shadow-secondary/5 overflow-hidden bg-white/50 backdrop-blur-sm rounded-3xl">
+          <CardContent className="p-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="recipientName"
@@ -88,24 +71,7 @@ export default function OrderPage() {
                       <FormControl>
                         <div className="relative">
                           <User className="absolute left-3 top-3 h-4 w-4 text-secondary/40" />
-                          <Input placeholder="Nom du client" className="pl-10 h-12 bg-white border-none shadow-sm focus-visible:ring-primary" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="recipientPhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Numéro</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-3 h-4 w-4 text-secondary/40" />
-                          <Input placeholder="08..." type="tel" className="pl-10 h-12 bg-white border-none shadow-sm focus-visible:ring-primary" {...field} />
+                          <Input placeholder="Nom du client" className="pl-10 h-11 bg-white border-none shadow-sm" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -122,7 +88,7 @@ export default function OrderPage() {
                       <FormControl>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-secondary/40" />
-                          <Input placeholder="Quartier, Avenue..." className="pl-10 h-12 bg-white border-none shadow-sm focus-visible:ring-primary" {...field} />
+                          <Input placeholder="Quartier, Avenue..." className="pl-10 h-11 bg-white border-none shadow-sm" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -131,33 +97,51 @@ export default function OrderPage() {
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                   <FormField
+                  <FormField
+                    control={form.control}
+                    name="recipientPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tél</FormLabel>
+                        <FormControl>
+                          <Input placeholder="08..." type="tel" className="h-11 bg-white border-none shadow-sm" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
                     control={form.control}
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Prix (FC)</FormLabel>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">FC</FormLabel>
                         <FormControl>
-                          <Input type="number" className="h-12 bg-white border-none shadow-sm font-bold text-secondary focus-visible:ring-primary" {...field} />
+                          <Input type="number" className="h-11 bg-white border-none shadow-sm font-bold" {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-              </div>
 
-              <Button 
-                type="submit" 
-                className="w-full h-14 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl shadow-primary/20 rounded-2xl active:scale-95 transition-all flex gap-2"
-              >
-                <PackagePlus className="h-6 w-6" />
-                COMMANDER LE MOTARD
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                <Button type="submit" className="w-full h-12 bg-primary text-primary-foreground font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-primary/20">
+                  <PackagePlus className="mr-2 h-5 w-5" />
+                  COMMANDER
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        {/* Map Placeholder Column */}
+        <div className="w-full h-64 lg:h-full min-h-[300px] rounded-3xl bg-muted/20 border-2 border-dashed border-muted flex flex-col items-center justify-center p-8 text-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-[url('https://api.dicebear.com/7.x/identicon/svg?seed=kinshasa')] opacity-5" />
+          <div className="bg-white p-4 rounded-full shadow-xl mb-4 relative z-10 group-hover:scale-110 transition-transform">
+            <MapIcon className="h-10 w-10 text-secondary" />
+          </div>
+          <h4 className="font-black text-secondary uppercase tracking-widest relative z-10">Localisation</h4>
+          <p className="text-xs text-muted-foreground mt-2 relative z-10">La carte interactive de Kinshasa s'affichera ici pour sélectionner précisément le point de livraison.</p>
+        </div>
+      </div>
     </div>
   );
 }
