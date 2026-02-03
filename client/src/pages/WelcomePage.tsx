@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import heroMap from "@/assets/hero-map-illustration.png";
-import rideImg from "@/assets/ride-option.jpg";
+import courierIllustration from "@/assets/courier-illustration.png";
+import sellerIllustration from "@/assets/seller-illustration.png";
 
 export default function WelcomePage() {
   const { setRole } = useStore();
@@ -114,55 +115,53 @@ export default function WelcomePage() {
         </div>
       </section>
 
-      {/* Options Section (Second Image Reference) */}
+      {/* Options Section */}
       <section className="px-6 md:px-20 py-20 bg-gray-50/50">
         <h3 className="text-3xl font-black mb-12 tracking-tighter">Suggestions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Option 1: Devenir Livreur */}
           <motion.div 
             whileHover={{ y: -5 }}
-            onClick={() => { setRole('courier'); setLocation('/dashboard'); }}
-            className="bg-white p-8 rounded-[2rem] shadow-lg border border-gray-100 flex flex-col justify-between group cursor-pointer"
+            onClick={() => { setRole('courier'); setRole('courier'); setLocation('/dashboard'); }}
+            className="bg-white p-0 rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden group cursor-pointer flex flex-col md:flex-row h-auto md:h-64"
           >
-            <div>
-              <h4 className="text-2xl font-black mb-2 tracking-tight">Devenir Livreur</h4>
-              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">Gagnez de l'argent en livrant à travers la ville de Kinshasa selon votre propre horaire.</p>
-              <Button variant="outline" className="rounded-full px-6 font-bold group-hover:bg-black group-hover:text-white transition-all">Détails</Button>
+            <div className="p-8 flex-1 flex flex-col justify-center">
+              <h4 className="text-3xl font-black mb-2 tracking-tight">Devenir Livreur</h4>
+              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">Gagnez de l'argent en livrant à travers Kinshasa avec votre propre moto.</p>
+              <Button variant="outline" className="rounded-full px-6 font-bold group-hover:bg-black group-hover:text-white transition-all w-fit">Détails</Button>
             </div>
-            <div className="mt-8 flex justify-end">
-              <div className="w-32 h-20 bg-gray-100 rounded-2xl flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                 <img src={rideImg} alt="Ride" className="w-24 h-auto object-contain" />
-              </div>
+            <div className="w-full md:w-1/2 h-48 md:h-full overflow-hidden">
+              <img src={courierIllustration} alt="Livreur Kinshasa" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             </div>
           </motion.div>
 
-          {/* Option 2: Envoie un colis */}
+          {/* Option 2: Envoyer un colis */}
           <motion.div 
             whileHover={{ y: -5 }}
             onClick={() => { setRole('seller'); setLocation('/'); }}
-            className="bg-white p-8 rounded-[2rem] shadow-lg border border-gray-100 flex flex-col justify-between group cursor-pointer"
+            className="bg-white p-0 rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden group cursor-pointer flex flex-col md:flex-row h-auto md:h-64"
           >
-            <div>
-              <h4 className="text-2xl font-black mb-2 tracking-tight">Envoyer un colis</h4>
-              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">Planifiez une course pour vos produits et clients en quelques secondes.</p>
-              <Button variant="outline" className="rounded-full px-6 font-bold group-hover:bg-black group-hover:text-white transition-all">Détails</Button>
+            <div className="p-8 flex-1 flex flex-col justify-center">
+              <h4 className="text-3xl font-black mb-2 tracking-tight">Vendre en ligne</h4>
+              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">Propulsez votre business kinois avec notre logistique express de pointe.</p>
+              <Button variant="outline" className="rounded-full px-6 font-bold group-hover:bg-black group-hover:text-white transition-all w-fit">Détails</Button>
             </div>
-            <div className="mt-8 flex justify-end">
-              <div className="w-32 h-20 bg-gray-100 rounded-2xl flex items-center justify-center group-hover:bg-secondary/10 transition-colors">
-                <Send className="h-10 w-10 text-secondary" />
-              </div>
+            <div className="w-full md:w-1/2 h-48 md:h-full overflow-hidden">
+              <img src={sellerIllustration} alt="Vendeur Kinshasa" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             </div>
           </motion.div>
+        </div>
 
-          {/* Option 3: Compte */}
-          <div className="lg:col-span-1 bg-white p-8 rounded-[2rem] shadow-lg border border-gray-100 flex flex-col items-start justify-center text-left gap-4">
-             <h4 className="text-3xl font-black tracking-tight leading-none">Connectez-vous pour voir vos détails</h4>
-             <p className="text-sm text-gray-500 font-medium">Consultez vos livraisons passées, suggestions personnalisées et plus encore.</p>
-             <div className="flex gap-4 mt-4 w-full">
-                <Button onClick={() => setLocation('/profile')} className="bg-black text-white rounded-xl h-12 px-6 flex-1 font-bold">Connexion</Button>
-                <button onClick={() => setLocation('/register')} className="text-sm font-bold underline px-4">Créer un compte</button>
-             </div>
-          </div>
+        {/* Option 3: Compte */}
+        <div className="mt-8 bg-black text-white p-12 rounded-[2rem] shadow-xl flex flex-col md:flex-row items-center justify-between gap-8">
+           <div className="max-w-xl">
+              <h4 className="text-4xl font-black tracking-tight leading-tight mb-4">Prêt à commencer l'expérience Kolisa ?</h4>
+              <p className="text-gray-400 font-medium">Connectez-vous pour voir vos livraisons ou créez un compte vendeur/livreur dès aujourd'hui.</p>
+           </div>
+           <div className="flex gap-4 w-full md:w-auto">
+              <Button onClick={() => setLocation('/profile')} className="bg-white text-black hover:bg-gray-200 rounded-xl h-14 px-8 font-black uppercase tracking-widest text-xs">Connexion</Button>
+              <Button onClick={() => setLocation('/register')} variant="outline" className="border-white text-white hover:bg-white/10 rounded-xl h-14 px-8 font-black uppercase tracking-widest text-xs">Inscription</Button>
+           </div>
         </div>
       </section>
 
