@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 export type OrderStatus = 'pending' | 'delivering' | 'delivered';
+export type UserRole = 'seller' | 'courier' | 'customer' | null;
 
 export interface Order {
   id: string;
@@ -12,11 +13,15 @@ export interface Order {
   price: number;
   timestamp: Date;
   trackingToken: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface AppState {
   orders: Order[];
   balance: number;
+  userRole: UserRole;
+  setRole: (role: UserRole) => void;
   addOrder: (order: Omit<Order, 'id' | 'status' | 'timestamp' | 'trackingToken'>) => string;
   markAsDelivering: (id: string) => void;
   markAsDelivered: (id: string) => void;
@@ -35,6 +40,8 @@ export const useStore = create<AppState>((set) => ({
       price: 5000,
       timestamp: new Date(Date.now() - 1000 * 60 * 30),
       trackingToken: 'TRK-WEMBA-123',
+      lat: -4.315,
+      lng: 15.305
     },
     {
       id: 'ORD-002',
@@ -45,9 +52,13 @@ export const useStore = create<AppState>((set) => ({
       price: 15000,
       timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
       trackingToken: 'TRK-MONIQUE-456',
+      lat: -4.380,
+      lng: 15.405
     },
   ],
   balance: 15000,
+  userRole: null,
+  setRole: (role) => set({ userRole: role }),
   addOrder: (orderData) => {
     const id = `ORD-${Math.floor(Math.random() * 10000)}`;
     const trackingToken = `TRK-${Math.random().toString(36).substring(7).toUpperCase()}`;

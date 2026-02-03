@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,21 +9,26 @@ import OrderPage from "@/pages/OrderPage";
 import DashboardPage from "@/pages/DashboardPage";
 import WalletPage from "@/pages/WalletPage";
 import TrackingPage from "@/pages/TrackingPage";
+import { useStore } from "@/lib/store";
 
 function Router() {
+  const { userRole } = useStore();
+
   return (
     <Switch>
       <Route path="/welcome" component={WelcomePage} />
       <Route path="*">
-        <Layout>
-          <Switch>
-            <Route path="/" component={OrderPage} />
-            <Route path="/dashboard" component={DashboardPage} />
-            <Route path="/tracking" component={TrackingPage} />
-            <Route path="/wallet" component={WalletPage} />
-            <Route component={NotFound} />
-          </Switch>
-        </Layout>
+        {!userRole ? <Redirect to="/welcome" /> : (
+          <Layout>
+            <Switch>
+              <Route path="/" component={OrderPage} />
+              <Route path="/dashboard" component={DashboardPage} />
+              <Route path="/tracking" component={TrackingPage} />
+              <Route path="/wallet" component={WalletPage} />
+              <Route component={NotFound} />
+            </Switch>
+          </Layout>
+        )}
       </Route>
     </Switch>
   );
