@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import sellerHero from "@/assets/seller-hero.png";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -320,8 +321,4 @@ export default function OrderPage() {
       </div>
     </div>
   );
-}
-
-function Badge({ children, className }: any) {
-  return <span className={cn("px-2 py-0.5 rounded-full", className)}>{children}</span>;
 }

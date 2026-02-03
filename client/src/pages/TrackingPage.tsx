@@ -29,7 +29,7 @@ const courierIcon = new L.Icon({
 });
 
 export default function TrackingPage() {
-  const [location] = useLocation();
+  const [, setLocation] = useLocation();
   const [token, setToken] = useState("");
   const { orders } = useStore();
   const [foundOrder, setFoundOrder] = useState<any>(null);
@@ -72,9 +72,9 @@ export default function TrackingPage() {
   };
 
   const steps = [
-    { status: "pending", label: "Préparation", icon: Clock },
-    { status: "delivering", label: "En route", icon: Truck },
-    { status: "delivered", label: "Livré", icon: CheckCircle2 },
+    { status: "pending" as const, label: "Préparation", icon: Clock },
+    { status: "delivering" as const, label: "En route", icon: Truck },
+    { status: "delivered" as const, label: "Livré", icon: CheckCircle2 },
   ];
 
   return (
