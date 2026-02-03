@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import sellerHero from "@/assets/seller-hero.png";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   recipientName: z.string().min(2, "Nom requis"),
