@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import customerHero from "@/assets/customer-hero.png";
+import { cn } from "@/lib/utils";
 
 export default function TrackingPage() {
   const [location] = useLocation();

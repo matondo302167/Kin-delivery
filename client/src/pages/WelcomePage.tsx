@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import sellerImg from "@/assets/seller-hero.png";
 import courierImg from "@/assets/courier-hero.png";
 import customerImg from "@/assets/customer-hero.png";
+import { cn } from "@/lib/utils";
 
 export default function WelcomePage() {
   const { setRole } = useStore();
