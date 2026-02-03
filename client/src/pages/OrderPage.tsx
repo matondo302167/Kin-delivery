@@ -55,11 +55,22 @@ export default function OrderPage() {
   });
 
   const handleMapClick = () => {
-    // Simulate address lookup from map click
-    const addresses = ["Avenue Lukusa, Gombe", "Boulevard du 30 Juin", "Avenue des Huileries", "Place Victoire, Kalamu"];
+    const addresses = [
+      "Avenue Lukusa, Gombe",
+      "Boulevard du 30 Juin, Gombe",
+      "Avenue des Huileries, Lingwala",
+      "Place Victoire, Kalamu",
+      "UPN, Ngaliema",
+      "Quartier GB, Gombe",
+      "Rond-point Ngaba, Ngaba",
+      "Binza Pigeon, Ngaliema",
+      "Masina Sans-Fil, Masina",
+      "Matete, Quartier 13",
+      "Limete Industrial, 7ème Rue"
+    ];
     const randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
     form.setValue("address", randomAddress);
-    toast({ title: "Adresse sélectionnée", description: randomAddress });
+    toast({ title: "Adresse identifiée", description: randomAddress });
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -118,10 +129,24 @@ export default function OrderPage() {
 
       <div className="flex flex-col gap-6">
         <Card 
-          className="w-full h-72 bg-slate-100 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-xl relative cursor-crosshair group"
+          className="w-full h-80 bg-slate-100 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-xl relative cursor-crosshair group"
           onClick={handleMapClick}
         >
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+          {/* Detailed Grid Map UI */}
+          <div className="absolute inset-0 bg-[#f8f9fa]">
+            {/* Neighborhood Labels Simulation */}
+            <div className="absolute top-10 left-10 text-[8px] font-bold text-slate-400 rotate-12">GOMBE</div>
+            <div className="absolute top-20 right-20 text-[8px] font-bold text-slate-400 -rotate-12">LIMETE</div>
+            <div className="absolute bottom-20 left-40 text-[8px] font-bold text-slate-400 rotate-45">NGALIEMA</div>
+            <div className="absolute bottom-10 right-10 text-[8px] font-bold text-slate-400">MATETE</div>
+            
+            {/* Grid & Streets Simulation */}
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]" />
+            <div className="absolute top-1/2 w-full h-px bg-slate-200" />
+            <div className="absolute left-1/2 h-full w-px bg-slate-200" />
+            <div className="absolute top-1/4 w-full h-1 bg-slate-200/50 -rotate-12" />
+          </div>
+          
           <motion.div 
             animate={{ scale: [1, 1.2, 1] }}
             transition={{ repeat: Infinity, duration: 2 }}
@@ -135,9 +160,25 @@ export default function OrderPage() {
             <div className="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-lg" />
             <MapPin className="absolute -top-8 text-primary h-8 w-8" />
           </motion.div>
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-6 py-3 rounded-2xl shadow-xl border border-primary/20 text-center w-[80%]">
-            <p className="text-[10px] font-black text-secondary uppercase tracking-widest">Ma Position Actuelle</p>
-            <p className="text-[9px] font-bold text-muted-foreground mt-1">Cliquez sur la carte pour choisir l'adresse</p>
+
+          <div className="absolute top-4 left-4 right-4 flex justify-between gap-2">
+            <div className="bg-white/90 backdrop-blur-sm p-2 rounded-xl shadow-sm border border-slate-100 flex-1">
+              <p className="text-[7px] font-black text-secondary uppercase tracking-tighter">Ville</p>
+              <p className="text-[10px] font-bold">Kinshasa</p>
+            </div>
+            <div className="bg-white/90 backdrop-blur-sm p-2 rounded-xl shadow-sm border border-slate-100 flex-1">
+              <p className="text-[7px] font-black text-secondary uppercase tracking-tighter">Commune</p>
+              <p className="text-[10px] font-bold">Gombe</p>
+            </div>
+            <div className="bg-white/90 backdrop-blur-sm p-2 rounded-xl shadow-sm border border-slate-100 flex-1">
+              <p className="text-[7px] font-black text-secondary uppercase tracking-tighter">Quartier</p>
+              <p className="text-[10px] font-bold">Lukusa</p>
+            </div>
+          </div>
+          
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-6 py-3 rounded-2xl shadow-xl border border-primary/20 text-center w-[85%]">
+            <p className="text-[9px] font-black text-secondary uppercase tracking-widest">Ma Position à Kinshasa</p>
+            <p className="text-[8px] font-bold text-muted-foreground mt-1">Cliquez pour détecter l'adresse précise</p>
           </div>
         </Card>
 
