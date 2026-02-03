@@ -1,6 +1,6 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useStore } from "@/lib/store";
-import { ShoppingBag, Truck, UserCheck, Smartphone, ArrowRight } from "lucide-react";
+import { ShoppingBag, Truck, UserCheck, ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import sellerImg from "@/assets/seller-hero.png";
 import courierImg from "@/assets/courier-hero.png";
@@ -13,30 +13,33 @@ export default function WelcomePage() {
   const roles = [
     {
       id: "seller",
-      title: "Vendeur",
-      desc: "Gérez vos ventes et expéditions",
+      title: "VENDEUR",
+      desc: "Gérez vos ventes de A à Z",
       icon: ShoppingBag,
       href: "/",
-      color: "bg-primary",
-      img: sellerImg
+      color: "from-amber-400 to-orange-500",
+      img: sellerImg,
+      accent: "border-orange-200"
     },
     {
       id: "courier",
-      title: "Livreur / Motard",
-      desc: "Recevez des missions de livraison",
+      title: "LIVREUR",
+      desc: "Liberté et revenus garantis",
       icon: Truck,
       href: "/dashboard",
-      color: "bg-secondary",
-      img: courierImg
+      color: "from-emerald-400 to-green-600",
+      img: courierImg,
+      accent: "border-green-200"
     },
     {
       id: "customer",
-      title: "Client Final",
-      desc: "Suivez l'arrivée de votre colis",
+      title: "CLIENT",
+      desc: "Suivez vos colis en direct",
       icon: UserCheck,
       href: "/tracking",
-      color: "bg-blue-600",
-      img: customerImg
+      color: "from-blue-400 to-indigo-600",
+      img: customerImg,
+      accent: "border-blue-200"
     }
   ] as const;
 
@@ -46,45 +49,64 @@ export default function WelcomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCF8] flex flex-col p-6 pb-12">
-      <div className="mt-12 mb-10 text-center space-y-2">
-        <h1 className="text-5xl font-black font-display text-secondary italic tracking-tighter">
-          KINDELIVERY
-        </h1>
-        <p className="text-muted-foreground font-bold uppercase tracking-[0.2em] text-[10px]">Logistique Urbaine • Kinshasa</p>
-      </div>
+    <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Abstract Background Decorations */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary/20 rounded-full blur-[120px] animate-pulse" />
 
-      <div className="grid gap-6 max-w-md mx-auto w-full">
-        {roles.map((role) => (
+      <motion.div 
+        initial={{ y: -30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="text-center mb-12 relative z-10"
+      >
+        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 mb-6">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="text-[10px] font-black text-white uppercase tracking-[0.4em]">Bienvenue à Kinshasa</span>
+        </div>
+        <h1 className="text-6xl font-black font-display text-white italic tracking-tighter leading-none">
+          KIN<span className="text-primary">DELIVERY</span>
+        </h1>
+        <p className="text-white/40 font-bold uppercase tracking-widest text-[10px] mt-4">La nouvelle ère du commerce urbain</p>
+      </motion.div>
+
+      <div className="grid gap-6 max-w-md w-full relative z-10">
+        {roles.map((role, i) => (
           <motion.div
             key={role.id}
-            whileHover={{ y: -4 }}
+            initial={{ x: -50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: i * 0.15 }}
+            whileHover={{ scale: 1.02, x: 10 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleSelectRole(role)}
-            className="relative group overflow-hidden rounded-[2.5rem] bg-white shadow-2xl shadow-secondary/10 border border-secondary/5 flex flex-col cursor-pointer"
+            className={`group relative overflow-hidden rounded-[2.5rem] bg-white/5 backdrop-blur-xl border-2 ${role.accent} border-opacity-10 cursor-pointer h-32 flex items-center`}
           >
-            <div className="h-44 w-full overflow-hidden">
-              <img src={role.img} alt={role.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute inset-0 w-1/3 overflow-hidden">
+              <img src={role.img} alt={role.title} className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-1000 grayscale group-hover:grayscale-0 opacity-40 group-hover:opacity-100" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0F172A]" />
             </div>
             
-            <div className="p-6 flex items-center justify-between absolute bottom-0 left-0 right-0 text-white">
-              <div className="flex items-center gap-4">
-                <div className={`${role.color} p-3 rounded-2xl shadow-xl`}>
-                  <role.icon className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-black text-lg tracking-tight leading-none">{role.title}</h3>
-                  <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-1">{role.desc}</p>
-                </div>
+            <div className="pl-[35%] pr-8 flex items-center justify-between w-full">
+              <div className="space-y-1">
+                <h3 className="font-black text-2xl text-white italic tracking-tighter">{role.title}</h3>
+                <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">{role.desc}</p>
               </div>
-              <div className="bg-white/20 p-2 rounded-full backdrop-blur-md">
-                <ArrowRight className="h-5 w-5" />
+              <div className={`p-4 rounded-2xl bg-gradient-to-br ${role.color} text-white shadow-2xl`}>
+                <role.icon className="h-6 w-6" />
               </div>
             </div>
           </motion.div>
         ))}
       </div>
+
+      <motion.p 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        transition={{ delay: 1 }}
+        className="mt-12 text-white/20 text-[9px] font-black uppercase tracking-[0.5em]"
+      >
+        © 2026 KINDELIVERY LOGISTICS
+      </motion.p>
     </div>
   );
 }

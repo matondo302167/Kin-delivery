@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 export type OrderStatus = 'pending' | 'delivering' | 'delivered';
 export type UserRole = 'seller' | 'courier' | 'customer' | null;
+export type PaymentMethod = 'cod' | 'mobile_money';
 
 export interface Order {
   id: string;
@@ -11,6 +12,8 @@ export interface Order {
   note?: string;
   status: OrderStatus;
   price: number;
+  articlePrice: number;
+  paymentMethod: PaymentMethod;
   timestamp: Date;
   trackingToken: string;
   lat?: number;
@@ -38,23 +41,13 @@ export const useStore = create<AppState>((set) => ({
       note: 'Portail bleu',
       status: 'pending',
       price: 5000,
+      articlePrice: 25000,
+      paymentMethod: 'cod',
       timestamp: new Date(Date.now() - 1000 * 60 * 30),
       trackingToken: 'TRK-WEMBA-123',
       lat: -4.315,
       lng: 15.305
-    },
-    {
-      id: 'ORD-002',
-      recipientName: 'Maman Monique',
-      recipientPhone: '0998765432',
-      address: 'Marché de la Liberté, Masina',
-      status: 'delivered',
-      price: 15000,
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      trackingToken: 'TRK-MONIQUE-456',
-      lat: -4.380,
-      lng: 15.405
-    },
+    }
   ],
   balance: 15000,
   userRole: null,
