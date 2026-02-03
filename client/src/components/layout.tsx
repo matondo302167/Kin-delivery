@@ -1,12 +1,13 @@
-import { useLocation, Redirect } from "wouter";
+import { useLocation, Redirect, Link } from "wouter";
 import { useStore } from "@/lib/store";
-import { Package, Wallet, Truck, Map, LogOut, LayoutDashboard } from "lucide-react";
+import { Package, Wallet, Truck, Map, LogOut, User, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { balance, userRole, setRole } = useStore();
+  const { userRole, setRole, profile } = useStore();
 
   if (!userRole) {
     return <Redirect to="/welcome" />;
@@ -17,7 +18,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     setLocation("/welcome");
   };
 
-  // Define navigation based on role
   const sellerNav = [
     { href: "/", icon: Package, label: "Commander" },
     { href: "/wallet", icon: Wallet, label: "Portefeuille" },
@@ -50,11 +50,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex items-center gap-3">
-          {userRole !== 'customer' && (
-            <div className="flex items-center gap-2 bg-secondary/5 px-3 py-1.5 rounded-full border border-secondary/10">
-               <span className="text-xs font-bold text-secondary font-mono">{balance.toLocaleString()} FC</span>
-            </div>
-          )}
+          <Link href="/profile">
+            <button className="flex items-center gap-2 group transition-transform active:scale-95">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-black text-secondary leading-none">{profile.name}</p>
+                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Profil</p>
+              </div>
+              <Avatar className="h-9 w-9 border-2 border-white shadow-md ring-2 ring-primary/20">
+                <AvatarImage src={profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`} />
+                <AvatarFallback><User /></AvatarFallback>
+              </Avatar>
+            </button>
+          </Link>
           <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-full hover:bg-red-50 text-red-500">
             <LogOut className="h-5 w-5" />
           </Button>

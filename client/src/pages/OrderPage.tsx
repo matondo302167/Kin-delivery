@@ -30,7 +30,16 @@ export default function OrderPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [selectedPos, setSelectedPos] = useState({ lat: -4.315, lng: 15.305 });
-  const [showLastOrder, setShowLastOrder] = useState(false);
+  const [showTracking, setShowTracking] = useState(false);
+
+  // Simulation of current position
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setSelectedPos({ lat: position.coords.latitude, lng: position.coords.longitude });
+      });
+    }
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,24 +55,25 @@ export default function OrderPage() {
   });
 
   const handleMapClick = () => {
-    const newLat = -4.315 + (Math.random() - 0.5) * 0.05;
-    const newLng = 15.305 + (Math.random() - 0.5) * 0.05;
-    setSelectedPos({ lat: newLat, lng: newLng });
-    toast({ title: "Position mise à jour" });
+    // Simulate address lookup from map click
+    const addresses = ["Avenue Lukusa, Gombe", "Boulevard du 30 Juin", "Avenue des Huileries", "Place Victoire, Kalamu"];
+    const randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
+    form.setValue("address", randomAddress);
+    toast({ title: "Adresse sélectionnée", description: randomAddress });
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const token = addOrder({ ...values, lat: selectedPos.lat, lng: selectedPos.lng } as any);
-    setShowLastOrder(true);
+    setShowTracking(true);
     toast({
       title: "Course lancée !",
-      description: `Code de suivi: ${token}`,
-      className: "bg-secondary text-white border-none",
+      description: `Tracking: ${token}`,
+      className: "bg-secondary text-white",
     });
     form.reset();
   }
 
-  const lastOrder = orders[0];
+  const myOrders = orders.filter(o => o.status !== 'delivered');
 
   return (
     <div className="space-y-6 pb-20">
@@ -77,34 +87,38 @@ export default function OrderPage() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showLastOrder && lastOrder && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-          >
-            <Card className="bg-primary/10 border-2 border-primary/20 rounded-[2rem] overflow-hidden">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">Dernière commande</p>
-                  <p className="font-mono font-bold text-lg">{lastOrder.trackingToken}</p>
+      {myOrders.length > 0 && (
+        <Card className="bg-primary/10 border-2 border-primary/20 rounded-[2rem] overflow-hidden">
+          <CardContent className="p-4 space-y-4">
+            <p className="text-[10px] font-black text-primary uppercase tracking-widest px-2">Suivre mes colis en cours ({myOrders.length})</p>
+            <div className="space-y-2">
+              {myOrders.map(o => (
+                <div key={o.id} className="bg-white/50 p-3 rounded-2xl flex items-center justify-between shadow-sm border border-white">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-secondary">{o.recipientName}</span>
+                    <span className="text-[10px] font-mono opacity-60">{o.trackingToken}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={cn(
+                      "text-[9px] font-black uppercase py-0.5",
+                      o.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                    )}>
+                      {o.status === 'pending' ? 'Attente' : 'En route'}
+                    </Badge>
+                    <Button size="icon" variant="ghost" onClick={() => setLocation(`/tracking?token=${o.trackingToken}`)} className="h-8 w-8 rounded-xl bg-primary text-primary-foreground">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <Button 
-                  onClick={() => setLocation(`/tracking?token=${lastOrder.trackingToken}`)}
-                  className="bg-primary text-primary-foreground rounded-xl"
-                >
-                  <Eye className="mr-2 h-4 w-4" /> Suivre
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-col gap-6">
         <Card 
-          className="w-full h-64 bg-slate-100 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-xl relative cursor-crosshair group"
+          className="w-full h-72 bg-slate-100 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-xl relative cursor-crosshair group"
           onClick={handleMapClick}
         >
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
@@ -113,16 +127,17 @@ export default function OrderPage() {
             transition={{ repeat: Infinity, duration: 2 }}
             className="absolute z-10 w-8 h-8 -ml-4 -mt-4 flex items-center justify-center"
             style={{ 
-              left: `${50 + (selectedPos.lng - 15.305) * 1000}%`, 
-              top: `${50 + (selectedPos.lat + 4.315) * 1000}%` 
+              left: `50%`, 
+              top: `50%` 
             }}
           >
             <div className="absolute w-full h-full bg-primary/40 rounded-full" />
-            <div className="w-4 h-4 bg-primary rounded-full border-2 border-white" />
-            <MapPin className="absolute -top-6 text-primary h-6 w-6" />
+            <div className="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-lg" />
+            <MapPin className="absolute -top-8 text-primary h-8 w-8" />
           </motion.div>
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg">
-            <span className="text-[10px] font-black text-secondary uppercase tracking-widest">📍 Destination sur carte</span>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-6 py-3 rounded-2xl shadow-xl border border-primary/20 text-center w-[80%]">
+            <p className="text-[10px] font-black text-secondary uppercase tracking-widest">Ma Position Actuelle</p>
+            <p className="text-[9px] font-bold text-muted-foreground mt-1">Cliquez sur la carte pour choisir l'adresse</p>
           </div>
         </Card>
 
@@ -170,9 +185,12 @@ export default function OrderPage() {
                   name="address"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Adresse</FormLabel>
+                      <FormLabel className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Adresse de livraison</FormLabel>
                       <FormControl>
-                        <Input placeholder="Commune, Quartier, Avenue..." className="h-13 bg-secondary/5 border-none rounded-2xl focus-visible:ring-primary font-bold px-4" {...field} />
+                        <div className="relative">
+                          <MapPin className="absolute left-4 top-3.5 h-4 w-4 text-secondary/30" />
+                          <Input placeholder="Sélectionnez sur la carte ou tapez ici..." className="pl-12 h-13 bg-secondary/5 border-none rounded-2xl focus-visible:ring-primary font-bold" {...field} />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -199,10 +217,10 @@ export default function OrderPage() {
                               </FormControl>
                               <FormLabel className={cn(
                                 "flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all",
-                                field.value === "cod" ? "border-primary bg-primary/10 text-primary" : "border-transparent bg-white"
+                                field.value === "cod" ? "border-primary bg-primary/10 text-primary" : "border-transparent bg-white shadow-sm"
                               )}>
                                 <Banknote className="h-6 w-6 mb-1" />
-                                <span className="text-[10px] font-black uppercase">Cash on Delivery</span>
+                                <span className="text-[10px] font-black uppercase">Cash (COD)</span>
                               </FormLabel>
                             </FormItem>
                             <FormItem className="flex-1">
@@ -211,7 +229,7 @@ export default function OrderPage() {
                               </FormControl>
                               <FormLabel className={cn(
                                 "flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all",
-                                field.value === "mobile_money" ? "border-secondary bg-secondary/10 text-secondary" : "border-transparent bg-white"
+                                field.value === "mobile_money" ? "border-secondary bg-secondary/10 text-secondary" : "border-transparent bg-white shadow-sm"
                               )}>
                                 <Wallet className="h-6 w-6 mb-1" />
                                 <span className="text-[10px] font-black uppercase">Mobile Money</span>
@@ -229,9 +247,9 @@ export default function OrderPage() {
                       name="articlePrice"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-[9px] font-black uppercase text-muted-foreground ml-1">Prix de l'article</FormLabel>
+                          <FormLabel className="text-[9px] font-black uppercase text-muted-foreground ml-1">À Encaisser</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="FC" className="h-12 bg-white border-none rounded-xl font-black text-secondary" {...field} />
+                            <Input type="number" placeholder="Article" className="h-12 bg-white border-none rounded-xl font-black text-secondary" {...field} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -241,7 +259,7 @@ export default function OrderPage() {
                       name="price"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-[9px] font-black uppercase text-muted-foreground ml-1">Frais Livraison</FormLabel>
+                          <FormLabel className="text-[9px] font-black uppercase text-muted-foreground ml-1">Frais Liv.</FormLabel>
                           <FormControl>
                             <Input type="number" className="h-12 bg-white border-none rounded-xl font-black text-primary" {...field} />
                           </FormControl>
@@ -262,4 +280,8 @@ export default function OrderPage() {
       </div>
     </div>
   );
+}
+
+function Badge({ children, className }: any) {
+  return <span className={cn("px-2 py-0.5 rounded-full", className)}>{children}</span>;
 }

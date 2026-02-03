@@ -9,6 +9,7 @@ import OrderPage from "@/pages/OrderPage";
 import DashboardPage from "@/pages/DashboardPage";
 import WalletPage from "@/pages/WalletPage";
 import TrackingPage from "@/pages/TrackingPage";
+import ProfilePage from "@/pages/ProfilePage";
 import { useStore } from "@/lib/store";
 
 function Router() {
@@ -25,6 +26,7 @@ function Router() {
               <Route path="/dashboard" component={DashboardPage} />
               <Route path="/tracking" component={TrackingPage} />
               <Route path="/wallet" component={WalletPage} />
+              <Route path="/profile" component={ProfilePage} />
               <Route component={NotFound} />
             </Switch>
           </Layout>

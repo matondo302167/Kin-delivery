@@ -14,32 +14,32 @@ export default function WelcomePage() {
     {
       id: "seller",
       title: "VENDEUR",
-      desc: "Gérez vos ventes de A à Z",
+      desc: "Vendez vos produits à Kin",
       icon: ShoppingBag,
       href: "/",
-      color: "from-amber-400 to-orange-500",
+      color: "bg-primary",
       img: sellerImg,
-      accent: "border-orange-200"
+      accent: "border-primary"
     },
     {
       id: "courier",
       title: "LIVREUR",
-      desc: "Liberté et revenus garantis",
+      desc: "Gagnez de l'argent par course",
       icon: Truck,
       href: "/dashboard",
-      color: "from-emerald-400 to-green-600",
+      color: "bg-secondary",
       img: courierImg,
-      accent: "border-green-200"
+      accent: "border-secondary"
     },
     {
       id: "customer",
       title: "CLIENT",
-      desc: "Suivez vos colis en direct",
+      desc: "Où est votre colis ?",
       icon: UserCheck,
       href: "/tracking",
-      color: "from-blue-400 to-indigo-600",
+      color: "bg-white",
       img: customerImg,
-      accent: "border-blue-200"
+      accent: "border-white"
     }
   ] as const;
 
@@ -49,64 +49,71 @@ export default function WelcomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Abstract Background Decorations */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary/20 rounded-full blur-[120px] animate-pulse" />
-
+    <div className="min-h-screen bg-white flex flex-col items-center justify-between p-8 relative overflow-hidden">
+      {/* Uber-like Minimal Background */}
+      <div className="absolute top-0 left-0 w-full h-1/2 bg-secondary opacity-[0.03] skew-y-6 -translate-y-20" />
+      
       <motion.div 
-        initial={{ y: -30, opacity: 0 }}
+        initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="text-center mb-12 relative z-10"
+        className="text-left w-full mt-12 relative z-10"
       >
-        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 mb-6">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-[10px] font-black text-white uppercase tracking-[0.4em]">Bienvenue à Kinshasa</span>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-1 w-secondary bg-secondary rounded-full" />
+          <span className="text-[10px] font-black text-secondary uppercase tracking-[0.4em]">KinDelivery v1.0</span>
         </div>
-        <h1 className="text-6xl font-black font-display text-white italic tracking-tighter leading-none">
-          KIN<span className="text-primary">DELIVERY</span>
+        <h1 className="text-6xl font-black font-display text-secondary tracking-tighter leading-none mb-4">
+          Livraison <br />
+          <span className="text-primary italic">en un clic.</span>
         </h1>
-        <p className="text-white/40 font-bold uppercase tracking-widest text-[10px] mt-4">La nouvelle ère du commerce urbain</p>
+        <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] max-w-[200px]">La logistique simplifiée pour le commerce à Kinshasa.</p>
       </motion.div>
 
-      <div className="grid gap-6 max-w-md w-full relative z-10">
+      <div className="grid gap-4 w-full max-w-md relative z-10 mb-12">
         {roles.map((role, i) => (
           <motion.div
             key={role.id}
-            initial={{ x: -50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: i * 0.15 }}
-            whileHover={{ scale: 1.02, x: 10 }}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: i * 0.1 }}
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleSelectRole(role)}
-            className={`group relative overflow-hidden rounded-[2.5rem] bg-white/5 backdrop-blur-xl border-2 ${role.accent} border-opacity-10 cursor-pointer h-32 flex items-center`}
+            className={cn(
+              "group relative overflow-hidden rounded-[2rem] h-28 flex items-center shadow-lg transition-all",
+              role.id === 'customer' ? "bg-secondary text-white" : "bg-white border-2 border-muted/50"
+            )}
           >
-            <div className="absolute inset-0 w-1/3 overflow-hidden">
-              <img src={role.img} alt={role.title} className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-1000 grayscale group-hover:grayscale-0 opacity-40 group-hover:opacity-100" />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0F172A]" />
+            <div className="absolute inset-y-0 left-0 w-24 overflow-hidden">
+              <img src={role.img} alt={role.title} className="w-full h-full object-cover opacity-80" />
+              <div className={cn(
+                "absolute inset-0 bg-gradient-to-r",
+                role.id === 'customer' ? "from-transparent to-secondary" : "from-transparent to-white"
+              )} />
             </div>
             
-            <div className="pl-[35%] pr-8 flex items-center justify-between w-full">
-              <div className="space-y-1">
-                <h3 className="font-black text-2xl text-white italic tracking-tighter">{role.title}</h3>
-                <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">{role.desc}</p>
+            <div className="pl-28 pr-8 flex items-center justify-between w-full">
+              <div className="space-y-0.5 text-left">
+                <h3 className="font-black text-xl italic tracking-tighter">{role.title}</h3>
+                <p className={cn(
+                  "text-[9px] font-bold uppercase tracking-widest",
+                  role.id === 'customer' ? "text-white/60" : "text-muted-foreground"
+                )}>{role.desc}</p>
               </div>
-              <div className={`p-4 rounded-2xl bg-gradient-to-br ${role.color} text-white shadow-2xl`}>
-                <role.icon className="h-6 w-6" />
+              <div className={cn(
+                "p-3 rounded-2xl shadow-xl",
+                role.id === 'customer' ? "bg-white text-secondary" : "bg-secondary text-white"
+              )}>
+                <role.icon className="h-5 w-5" />
               </div>
             </div>
           </motion.div>
         ))}
       </div>
 
-      <motion.p 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }} 
-        transition={{ delay: 1 }}
-        className="mt-12 text-white/20 text-[9px] font-black uppercase tracking-[0.5em]"
-      >
-        © 2026 KINDELIVERY LOGISTICS
-      </motion.p>
+      <div className="w-full text-center">
+        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">KINDELIVERY LOGISTICS • RDC</p>
+      </div>
     </div>
   );
 }

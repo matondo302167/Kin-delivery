@@ -20,11 +20,20 @@ export interface Order {
   lng?: number;
 }
 
+export interface UserProfile {
+  name: string;
+  phone: string;
+  email: string;
+  avatar?: string;
+}
+
 interface AppState {
   orders: Order[];
   balance: number;
   userRole: UserRole;
+  profile: UserProfile;
   setRole: (role: UserRole) => void;
+  updateProfile: (profile: Partial<UserProfile>) => void;
   addOrder: (order: Omit<Order, 'id' | 'status' | 'timestamp' | 'trackingToken'>) => string;
   markAsDelivering: (id: string) => void;
   markAsDelivered: (id: string) => void;
@@ -51,7 +60,13 @@ export const useStore = create<AppState>((set) => ({
   ],
   balance: 15000,
   userRole: null,
+  profile: {
+    name: "Felix Kabange",
+    phone: "0812345678",
+    email: "felix@kindelivery.cd"
+  },
   setRole: (role) => set({ userRole: role }),
+  updateProfile: (updates) => set((state) => ({ profile: { ...state.profile, ...updates } })),
   addOrder: (orderData) => {
     const id = `ORD-${Math.floor(Math.random() * 10000)}`;
     const trackingToken = `TRK-${Math.random().toString(36).substring(7).toUpperCase()}`;
