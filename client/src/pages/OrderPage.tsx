@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Popup } from 'react-leaflet';
-import L from 'leaflet';
+import L, { LeafletMouseEvent } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet marker icons
@@ -41,7 +41,7 @@ function LocationMarker({ activeField, onLocationSelect }: { activeField: 'picku
   const map = useMap();
 
   useMapEvents({
-    click(e) {
+    click(e: LeafletMouseEvent) {
       if (activeField === 'pickup') {
         setPickupPos(e.latlng);
         onLocationSelect(e.latlng.lat, e.latlng.lng);
