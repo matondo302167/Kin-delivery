@@ -104,7 +104,7 @@ export default function WelcomePage() {
                   Envoyer un colis
                 </Button>
                 <button 
-                  onClick={() => { setRole('seller'); setLocation('/'); }}
+                  onClick={() => setLocation('/seller-details')}
                   className="text-sm font-black underline decoration-2 underline-offset-8 hover:text-primary transition-colors"
                 >
                   Détails
@@ -131,7 +131,10 @@ export default function WelcomePage() {
               <div className="flex-1 space-y-4">
                 <h4 className="text-3xl font-black tracking-tighter text-secondary">Devenir Livreur</h4>
                 <p className="text-sm text-gray-500 font-medium">Gagnez de l'argent en livrant selon votre propre horaire.</p>
-                <Button variant="outline" className="rounded-full px-6 font-bold group-hover:bg-black group-hover:text-white transition-all">S'inscrire</Button>
+                <div className="flex gap-4">
+                  <Button onClick={(e) => { e.stopPropagation(); setLocation('/register'); }} variant="outline" className="rounded-full px-6 font-bold group-hover:bg-black group-hover:text-white transition-all">S'inscrire</Button>
+                  <Button onClick={(e) => { e.stopPropagation(); setLocation('/courier-details'); }} variant="ghost" className="rounded-full px-4 font-bold text-gray-500 hover:text-black">Détails</Button>
+                </div>
               </div>
               <div className="w-40 h-32 flex items-center justify-center">
                 <img src={courierIllustration} alt="Livreur" className="w-full h-full object-contain" />
@@ -195,13 +198,15 @@ export default function WelcomePage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-12">
             <div className="space-y-4">
               <p className="font-black uppercase tracking-widest text-[10px] text-white/40">Entreprise</p>
-              <p className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">À propos</p>
-              <p className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Tarifs</p>
+              <p onClick={() => setLocation('/about')} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">À propos</p>
+              <p onClick={() => setLocation('/pricing')} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Tarifs</p>
+              <p onClick={() => setLocation('/company')} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Info Légal</p>
             </div>
             <div className="space-y-4">
               <p className="font-black uppercase tracking-widest text-[10px] text-white/40">Produit</p>
-              <p className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Vendre</p>
-              <p className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Livrer</p>
+              <p onClick={() => setLocation('/seller-details')} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Vendre</p>
+              <p onClick={() => setLocation('/courier-details')} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Livrer</p>
+              <p onClick={() => setLocation('/product')} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Apps</p>
             </div>
           </div>
         </div>

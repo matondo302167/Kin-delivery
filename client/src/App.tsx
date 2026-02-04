@@ -5,6 +5,13 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Layout from "@/components/layout";
 import WelcomePage from "@/pages/WelcomePage";
+import RegisterPage from "@/pages/RegisterPage";
+import SellerDetailsPage from "@/pages/SellerDetailsPage";
+import CourierDetailsPage from "@/pages/CourierDetailsPage";
+import AboutPage from "@/pages/AboutPage";
+import PricingPage from "@/pages/PricingPage";
+import ProductPage from "@/pages/ProductPage";
+import CompanyPage from "@/pages/CompanyPage";
 import OrderPage from "@/pages/OrderPage";
 import DashboardPage from "@/pages/DashboardPage";
 import WalletPage from "@/pages/WalletPage";
@@ -18,6 +25,13 @@ function Router() {
   return (
     <Switch>
       <Route path="/welcome" component={WelcomePage} />
+      <Route path="/register" component={RegisterPage} />
+      <Route path="/seller-details" component={SellerDetailsPage} />
+      <Route path="/courier-details" component={CourierDetailsPage} />
+      <Route path="/about" component={AboutPage} />
+      <Route path="/pricing" component={PricingPage} />
+      <Route path="/product" component={ProductPage} />
+      <Route path="/company" component={CompanyPage} />
       <Route path="*">
         {!userRole ? <Redirect to="/welcome" /> : (
           <Layout>
