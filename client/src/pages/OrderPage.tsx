@@ -164,9 +164,10 @@ export default function OrderPage() {
   // Mock address suggestions
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const handleAddressChange = async (value: string) => {
-    if (value.length > 3) {
+    if (value.length > 2) {
       try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${value}&limit=5`);
+        // Bias results towards Kinshasa
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}+Kinshasa&countrycodes=cd&limit=5`);
         const data = await response.json();
         setSuggestions(data.map((item: any) => item.display_name));
       } catch (e) {
@@ -191,7 +192,7 @@ export default function OrderPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               
               {/* Ride Inputs Card */}
-              <div className="bg-gray-50 p-4 rounded-3xl space-y-4 border border-gray-100 relative overflow-hidden">
+              <div className="bg-gray-50 p-4 rounded-3xl space-y-4 border border-gray-100 relative">
                 {/* Visual Connector Line */}
                 <div className="absolute left-[27px] top-[40px] bottom-[40px] w-0.5 bg-gray-300 z-0"></div>
                 
@@ -219,17 +220,19 @@ export default function OrderPage() {
                           />
                           {/* Suggestions Dropdown */}
                           {activeField === 'pickup' && suggestions.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-xl z-[100] mt-2 border border-gray-100 max-h-60 overflow-y-auto">
+                            <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border border-gray-200 max-h-60 overflow-y-auto">
                               {suggestions.map((suggestion, idx) => (
                                 <div 
                                   key={idx} 
-                                  className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-50 last:border-none"
-                                  onClick={() => {
+                                  className="p-3 hover:bg-blue-50 cursor-pointer text-sm font-medium border-b border-gray-100 last:border-none flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent bubbling issues
                                     form.setValue("pickupAddress", suggestion);
                                     setSuggestions([]);
                                   }}
                                 >
-                                  {suggestion}
+                                  <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+                                  <span className="truncate">{suggestion}</span>
                                 </div>
                               ))}
                             </div>
@@ -270,17 +273,19 @@ export default function OrderPage() {
                           />
                           {/* Suggestions Dropdown */}
                           {activeField === 'delivery' && suggestions.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-xl z-[100] mt-2 border border-gray-100 max-h-60 overflow-y-auto">
+                            <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border border-gray-200 max-h-60 overflow-y-auto">
                               {suggestions.map((suggestion, idx) => (
                                 <div 
                                   key={idx} 
-                                  className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-50 last:border-none"
-                                  onClick={() => {
+                                  className="p-3 hover:bg-blue-50 cursor-pointer text-sm font-medium border-b border-gray-100 last:border-none flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     form.setValue("deliveryAddress", suggestion);
                                     setSuggestions([]);
                                   }}
                                 >
-                                  {suggestion}
+                                  <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+                                  <span className="truncate">{suggestion}</span>
                                 </div>
                               ))}
                             </div>
