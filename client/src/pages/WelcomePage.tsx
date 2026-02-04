@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import heroCourier from "@/assets/hero-courier-illustration.png";
 import courierIllustration from "@/assets/courier-illustration.png";
 import sellerIllustration from "@/assets/seller-illustration.png";
-import sendParcelDrawing from "@/assets/send-parcel-drawing.png";
+import africanDeliveryIllustration from "@/assets/african-delivery-illustration.png";
 
 export default function WelcomePage() {
   const { setRole } = useStore();
@@ -222,9 +222,9 @@ export default function WelcomePage() {
           </div>
           <div className="bg-[#F6F6F6] rounded-[2.5rem] p-12 flex items-center justify-center min-h-[400px]">
             <img 
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Kin" 
+              src={africanDeliveryIllustration} 
               alt="Account" 
-              className="w-full max-w-sm h-auto opacity-80" 
+              className="w-full max-w-sm h-auto mix-blend-multiply" 
             />
           </div>
         </div>
