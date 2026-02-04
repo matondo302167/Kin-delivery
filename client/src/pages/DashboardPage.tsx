@@ -1,67 +1,135 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useStore } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Truck, Clock, Phone, KeyRound, Camera, Wallet, Banknote } from "lucide-react";
+import { CheckCircle2, Truck, Clock, Phone, KeyRound, Camera, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import courierHero from "@/assets/courier-hero.png";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { listOrders, acceptOrder, confirmCashCollection, updateOrderPhoto, validateDelivery, uploadFile } from "@/lib/api";
+import type { Order } from "@shared/schema";
 
 export default function DashboardPage() {
-  const { orders, markAsDelivering, markAsDelivered } = useStore();
+  const { profile } = useStore();
   const { toast } = useToast();
   const [pin, setPin] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [cashCollected, setCashCollected] = useState(false);
-  const [photoTaken, setPhotoTaken] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
+  const [myMissions, setMyMissions] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleAccept = (id: string) => {
-    markAsDelivering(id);
-    toast({ title: "Mission acceptée", description: "En route pour le ramassage" });
-  };
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      // In a real app, upload to Supabase Storage here
-      setPhotoTaken(true);
-      toast({ title: "Photo enregistrée", description: "Preuve de livraison ajoutée" });
+  const loadOrders = async () => {
+    try {
+      setIsLoading(true);
+      const [pending, delivering] = await Promise.all([
+        listOrders({ status: "pending" }),
+        listOrders({ courierId: profile?.id, status: "delivering" }),
+      ]);
+      setAvailableOrders(pending);
+      setMyMissions(delivering);
+    } catch (error) {
+      console.error("Failed to load orders:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDeliver = (order: any) => {
-    if (order.paymentMethod === 'cod' && !cashCollected) {
-      toast({ title: "Encaissement requis", description: "Veuillez confirmer l'encaissement de l'argent.", variant: "destructive" });
+  useEffect(() => {
+    loadOrders();
+    const interval = setInterval(loadOrders, 10000); // Refresh every 10s
+    return () => clearInterval(interval);
+  }, [profile?.id]);
+
+  const handleAccept = async (id: string) => {
+    if (!profile?.id) {
+      toast({ title: "Erreur", description: "Profil non trouvé", variant: "destructive" });
       return;
     }
     
-    if (!photoTaken) {
-      toast({ title: "Photo requise", description: "Veuillez prendre une photo du colis livré.", variant: "destructive" });
-      return;
-    }
-
-    if (pin === "1234") {
-      markAsDelivered(order.id);
-      setPin("");
-      setCashCollected(false);
-      setPhotoTaken(false);
-      setSelectedOrder(null);
-      toast({ title: "Livraison validée", description: "Paiement crédité au vendeur" });
-    } else {
-      toast({ title: "Code PIN invalide", variant: "destructive" });
+    try {
+      await acceptOrder(id, profile.id);
+      toast({ title: "Mission acceptée", description: "En route pour le ramassage" });
+      await loadOrders();
+    } catch (error: any) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
     }
   };
 
-  const availableOrders = orders.filter(o => o.status === 'pending');
-  const myMissions = orders.filter(o => o.status === 'delivering');
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && selectedOrder) {
+      setIsUploading(true);
+      try {
+        const file = e.target.files[0];
+        const { objectPath } = await uploadFile(file);
+        await updateOrderPhoto(selectedOrder.id, objectPath);
+        setPhotoUrl(objectPath);
+        toast({ title: "Photo enregistrée", description: "Preuve de livraison ajoutée" });
+      } catch (error: any) {
+        toast({ title: "Erreur photo", description: error.message, variant: "destructive" });
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
+
+  const handleCashCollectionToggle = async () => {
+    if (selectedOrder && !cashCollected) {
+      try {
+        await confirmCashCollection(selectedOrder.id);
+        setCashCollected(true);
+        toast({ title: "Encaissement confirmé", description: "Argent collecté" });
+      } catch (error: any) {
+        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      }
+    }
+  };
+
+  const handleDeliver = async () => {
+    if (!selectedOrder) return;
+    
+    if (!photoUrl) {
+      toast({ title: "Photo requise", description: "Prenez une photo du colis", variant: "destructive" });
+      return;
+    }
+    
+    if (selectedOrder.paymentMethod === 'cod' && !cashCollected) {
+      toast({ title: "Encaissement requis", description: "Confirmez la réception de l'argent", variant: "destructive" });
+      return;
+    }
+    
+    if (pin.length !== 4) {
+      toast({ title: "Code PIN invalide", description: "Le code doit contenir 4 chiffres", variant: "destructive" });
+      return;
+    }
+    
+    setIsValidating(true);
+    try {
+      await validateDelivery(selectedOrder.id, pin, profile?.id);
+      setPin("");
+      setCashCollected(false);
+      setPhotoUrl("");
+      setSelectedOrder(null);
+      toast({ title: "Livraison validée", description: "Paiement crédité au vendeur" });
+      await loadOrders();
+    } catch (error: any) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   return (
     <div className="space-y-6 pb-20">
-      {/* ... Hero Section remains same ... */}
       <div className="relative h-44 rounded-[2.5rem] overflow-hidden shadow-2xl">
         <img src={courierHero} alt="Courier" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-secondary/90 via-secondary/40 to-transparent flex items-center p-8">
@@ -74,7 +142,9 @@ export default function DashboardPage() {
 
       <div className="space-y-4">
         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground px-2">Mes Courses en cours</h3>
-        {myMissions.length === 0 ? (
+        {isLoading ? (
+          <p className="text-center py-8 text-xs font-bold text-muted-foreground uppercase">Chargement...</p>
+        ) : myMissions.length === 0 ? (
           <p className="text-center py-8 text-xs font-bold text-muted-foreground uppercase border-2 border-dashed border-slate-100 rounded-3xl">Aucune course active</p>
         ) : (
           myMissions.map(order => (
@@ -83,87 +153,83 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="text-lg font-black italic uppercase tracking-tight text-secondary">{order.recipientName}</h4>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">{order.address}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">{order.deliveryAddress}</p>
                   </div>
                   <Badge className="bg-blue-500 text-white text-[9px] font-black uppercase">En route</Badge>
                 </div>
-                
-                {order.paymentMethod === 'cod' && (
-                  <div className="bg-green-50 p-3 rounded-xl flex items-center gap-3 border border-green-100">
-                    <Banknote className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-green-800">À Encaisser</p>
-                      <p className="font-black text-lg text-green-600">{(order.articlePrice + order.price).toLocaleString()} FC</p>
-                    </div>
-                  </div>
-                )}
-
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1 rounded-xl border-slate-100 h-12" onClick={() => window.open(`tel:${order.recipientPhone}`)}>
                     <Phone className="mr-2 h-4 w-4" /> Appeler
                   </Button>
-                  <Dialog onOpenChange={(open) => !open && setSelectedOrder(null)}>
+                  <Dialog>
                     <DialogTrigger asChild>
                       <Button 
                         className="flex-1 rounded-xl bg-primary text-primary-foreground h-12 shadow-lg shadow-primary/20"
-                        onClick={() => setSelectedOrder(order)}
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setCashCollected(!!order.cashCollected);
+                          setPhotoUrl(order.photoProofUrl || "");
+                        }}
                       >
                         <CheckCircle2 className="mr-2 h-4 w-4" /> Valider
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="rounded-[2rem] p-8 max-w-[90%] w-full overflow-y-auto max-h-[90vh]">
+                    <DialogContent className="rounded-[2rem] p-8 max-w-[90%]">
                       <DialogHeader>
                         <DialogTitle className="text-center font-black uppercase italic tracking-tighter text-2xl">Validation Sécurisée</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-6 pt-4 text-center">
+                      <div className="space-y-6 pt-4">
                         
-                        {/* Step 1: Photo Proof */}
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-secondary text-left">1. Preuve de livraison</p>
-                          <div 
-                            onClick={() => fileInputRef.current?.click()}
-                            className={`h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${photoTaken ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
-                          >
-                             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
-                             {photoTaken ? (
-                               <>
-                                 <CheckCircle2 className="h-8 w-8 text-green-500 mb-2" />
-                                 <p className="text-xs font-bold text-green-700">Photo enregistrée</p>
-                               </>
-                             ) : (
-                               <>
-                                 <Camera className="h-8 w-8 text-slate-400 mb-2" />
-                                 <p className="text-xs font-bold text-slate-400">Prendre une photo du colis</p>
-                               </>
-                             )}
+                        {/* Photo Proof */}
+                        <div className="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Camera className="h-5 w-5 text-secondary" />
+                              <span className="text-sm font-black uppercase text-secondary">Preuve Photo</span>
+                            </div>
+                            {photoUrl && <CheckCircle2 className="h-5 w-5 text-green-500" />}
                           </div>
+                          <input 
+                            ref={fileInputRef}
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={handlePhotoUpload} 
+                          />
+                          <Button 
+                            onClick={() => fileInputRef.current?.click()} 
+                            variant="outline" 
+                            className="w-full"
+                            disabled={isUploading}
+                          >
+                            {isUploading ? "Upload..." : photoUrl ? "Photo ajoutée ✓" : "Prendre une photo"}
+                          </Button>
                         </div>
 
-                        {/* Step 2: Cash Collection (if COD) */}
-                        {order.paymentMethod === 'cod' && (
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-secondary text-left">2. Encaissement</p>
-                            <div className="flex items-center space-x-2 bg-green-50 p-4 rounded-2xl border border-green-100">
+                        {/* Cash Collection (COD only) */}
+                        {selectedOrder?.paymentMethod === 'cod' && (
+                          <div className="bg-green-50 p-4 rounded-2xl border-2 border-dashed border-green-200">
+                            <div className="flex items-center gap-3">
                               <Checkbox 
-                                id="cash-collected" 
+                                id="cash" 
                                 checked={cashCollected}
-                                onCheckedChange={(checked) => setCashCollected(checked as boolean)}
-                                className="h-6 w-6 border-green-600 data-[state=checked]:bg-green-600 data-[state=checked]:text-white"
+                                onCheckedChange={() => handleCashCollectionToggle()}
                               />
-                              <Label htmlFor="cash-collected" className="text-sm font-bold text-green-900 cursor-pointer flex-1 text-left">
-                                J'ai reçu {(order.articlePrice + order.price).toLocaleString()} FC en espèces
+                              <Label htmlFor="cash" className="text-sm font-black uppercase cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <DollarSign className="h-4 w-4 text-green-600" />
+                                  <span>Argent collecté ({parseFloat(selectedOrder.articlePrice || "0").toLocaleString()} FC)</span>
+                                </div>
                               </Label>
                             </div>
                           </div>
                         )}
 
-                        {/* Step 3: PIN Code */}
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-secondary text-left">{order.paymentMethod === 'cod' ? '3.' : '2.'} Code PIN Client</p>
-                          <div className="bg-primary/10 p-4 rounded-2xl border-2 border-primary/20 border-dashed">
-                            <KeyRound className="h-8 w-8 text-primary mx-auto mb-2" />
-                            <p className="text-[9px] font-bold text-muted-foreground">Entrez le code reçu par SMS</p>
-                          </div>
+                        {/* PIN Entry */}
+                        <div className="bg-primary/10 p-4 rounded-2xl border-2 border-primary/20 border-dashed">
+                          <KeyRound className="h-8 w-8 text-primary mx-auto mb-2" />
+                          <p className="text-[10px] font-black uppercase text-secondary text-center">Code PIN Client</p>
+                          <p className="text-[9px] font-bold text-muted-foreground text-center mb-3">Entrez le code de 4 chiffres reçu par le client</p>
                           <Input 
                             type="password" 
                             maxLength={4} 
@@ -174,10 +240,13 @@ export default function DashboardPage() {
                           />
                         </div>
 
-                        <Button className="w-full h-14 rounded-2xl bg-secondary text-white font-black uppercase tracking-widest" onClick={() => handleDeliver(order)}>
-                          Confirmer Livraison
+                        <Button 
+                          className="w-full h-14 rounded-2xl bg-secondary text-white font-black uppercase tracking-widest" 
+                          onClick={handleDeliver}
+                          disabled={isValidating}
+                        >
+                          {isValidating ? "Validation..." : "Confirmer Livraison"}
                         </Button>
-                        <p className="text-[8px] font-bold text-muted-foreground uppercase">Indice pour démo: 1234</p>
                       </div>
                     </DialogContent>
                   </Dialog>
@@ -201,13 +270,18 @@ export default function DashboardPage() {
                     </div>
                     <span className="text-[10px] font-black uppercase text-muted-foreground">Il y a 2 min</span>
                   </div>
-                  <span className="text-lg font-black text-secondary">{(order.price).toLocaleString()} FC</span>
+                  <span className="text-lg font-black text-secondary">{parseFloat(order.price).toLocaleString()} FC</span>
                 </div>
                 <div>
-                  <h4 className="font-black italic text-secondary uppercase tracking-tighter text-xl leading-none mb-1">{order.address.split(',')[1] || "Gombe"}</h4>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">{order.address}</p>
+                  <h4 className="font-black italic text-secondary uppercase tracking-tighter text-xl leading-none mb-1">
+                    {order.deliveryAddress.split(',')[1] || "Kinshasa"}
+                  </h4>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">{order.deliveryAddress}</p>
                 </div>
-                <Button className="w-full h-12 bg-secondary text-white font-black uppercase tracking-widest rounded-xl shadow-xl shadow-secondary/10" onClick={() => handleAccept(order.id)}>
+                <Button 
+                  className="w-full h-12 bg-secondary text-white font-black uppercase tracking-widest rounded-xl shadow-xl shadow-secondary/10" 
+                  onClick={() => handleAccept(order.id)}
+                >
                   Accepter la mission
                 </Button>
               </CardContent>

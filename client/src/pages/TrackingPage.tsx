@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
+import { getOrderByToken } from "@/lib/api";
+import type { Order } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, MapPin, Truck, CheckCircle2, Clock, Package, Banknote, Wallet, Phone, ShieldCheck, ArrowLeft } from "lucide-react";
@@ -31,9 +32,10 @@ const courierIcon = new L.Icon({
 export default function TrackingPage() {
   const [, setLocation] = useLocation();
   const [token, setToken] = useState("");
-  const { orders } = useStore();
-  const [foundOrder, setFoundOrder] = useState<any>(null);
+  const [foundOrder, setFoundOrder] = useState<Order | null>(null);
   const [courierPos, setCourierPos] = useState<[number, number] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     // Get token from URL search params
@@ -41,23 +43,38 @@ export default function TrackingPage() {
     const t = params.get("token");
     if (t) {
       setToken(t);
-      // Immediate search if token exists
-      const order = orders.find((o) => o.trackingToken === t || o.id === t);
-      setFoundOrder(order || null);
+      handleSearch(t);
     }
-  }, [orders]); // Re-run if orders change (unlikely but safe) or on mount
+  }, []);
+
+  const handleSearch = async (searchToken?: string) => {
+    const tokenToSearch = searchToken || token;
+    if (!tokenToSearch) return;
+    
+    setIsSearching(true);
+    setError("");
+    try {
+      const order = await getOrderByToken(tokenToSearch);
+      setFoundOrder(order);
+    } catch (err) {
+      setError("Colis introuvable. Vérifiez le code.");
+      setFoundOrder(null);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   // Simulate courier movement if delivering
   useEffect(() => {
-    if (foundOrder?.status === 'delivering' && foundOrder.lat && foundOrder.lng) {
-      const startPos: [number, number] = [foundOrder.lat + 0.01, foundOrder.lng + 0.01];
+    if (foundOrder?.status === 'delivering' && foundOrder.deliveryLat && foundOrder.deliveryLng) {
+      const targetLat = parseFloat(foundOrder.deliveryLat);
+      const targetLng = parseFloat(foundOrder.deliveryLng);
+      const startPos: [number, number] = [targetLat + 0.01, targetLng + 0.01];
       setCourierPos(startPos);
       
       const interval = setInterval(() => {
         setCourierPos(prev => {
           if (!prev) return startPos;
-          const targetLat = foundOrder.lat!;
-          const targetLng = foundOrder.lng!;
           return [
             prev[0] + (targetLat - prev[0]) * 0.1,
             prev[1] + (targetLng - prev[1]) * 0.1
@@ -68,13 +85,13 @@ export default function TrackingPage() {
     }
   }, [foundOrder]);
 
-  const handleSearch = (searchToken?: string) => {
-    const t = searchToken || token;
-    const order = orders.find((o) => o.trackingToken === t || o.id === t);
-    setFoundOrder(order || null);
-    // Update URL without reloading to reflect the search
-    if (t && t !== new URLSearchParams(window.location.search).get("token")) {
-       window.history.pushState({}, '', `/tracking?token=${t}`);
+  const performSearch = () => {
+    if (token) {
+      handleSearch(token);
+      // Update URL without reloading to reflect the search
+      if (token !== new URLSearchParams(window.location.search).get("token")) {
+        window.history.pushState({}, '', `/tracking?token=${token}`);
+      }
     }
   };
 

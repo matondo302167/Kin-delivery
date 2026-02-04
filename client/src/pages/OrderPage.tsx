@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
+import { createOrder } from "@/lib/api";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -70,8 +71,9 @@ function LocationMarker({ activeField, onLocationSelect, userLocation }: { activ
 }
 
 export default function OrderPage() {
-  const { addOrder, orders } = useStore();
+  const { profile } = useStore();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [, setLocation] = useLocation();
   const [activeField, setActiveField] = useState<'pickup' | 'delivery' | null>(null);
   const [pickupCoords, setPickupCoords] = useState<{lat: number, lng: number} | null>(null);
@@ -138,28 +140,43 @@ export default function OrderPage() {
     setActiveField(null); // Clear active field to hide yellow text
   };
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Combine addresses or use delivery for the main record
-    // Using delivery coords for the order tracking
-    const coords = deliveryCoords || { lat: -4.325, lng: 15.3222 };
-    
-    const token = addOrder({ 
-      ...values, 
-      address: values.deliveryAddress, // Map deliveryAddress to legacy address field
-      lat: coords.lat, 
-      lng: coords.lng 
-    } as any);
-    
-    toast({
-      title: "Course lancée !",
-      description: `SMS envoyé au client avec le code secret. Tracking: ${token}`,
-    });
-    form.reset();
-    setPickupCoords(null);
-    setDeliveryCoords(null);
-    
-    // Redirect to packages list
-    setLocation("/seller-packages");
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+      const pickupCoord = pickupCoords || { lat: -4.325, lng: 15.3222 };
+      const deliveryCoord = deliveryCoords || { lat: -4.325, lng: 15.3222 };
+      
+      const result = await createOrder({
+        ...values,
+        pickupLat: pickupCoord.lat.toString(),
+        pickupLng: pickupCoord.lng.toString(),
+        deliveryLat: deliveryCoord.lat.toString(),
+        deliveryLng: deliveryCoord.lng.toString(),
+        price: values.price.toString(),
+        articlePrice: values.articlePrice.toString(),
+        sellerId: profile?.id,
+      });
+      
+      toast({
+        title: "Course lancée !",
+        description: result.message || `SMS envoyé au ${values.recipientPhone}. Tracking: ${result.order.trackingToken}`,
+      });
+      
+      form.reset();
+      setPickupCoords(null);
+      setDeliveryCoords(null);
+      
+      // Redirect to packages list
+      setLocation("/seller-packages");
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de créer la commande",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const paymentMethod = form.watch("paymentMethod");
@@ -420,8 +437,12 @@ export default function OrderPage() {
                   />
               </div>
 
-              <Button type="submit" className="w-full h-14 bg-black hover:bg-gray-800 text-white font-bold text-lg rounded-xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
-                Lancer la course
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full h-14 bg-black hover:bg-gray-800 text-white font-bold text-lg rounded-xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+              >
+                {isSubmitting ? "Envoi en cours..." : "Lancer la course"}
               </Button>
             </form>
           </Form>

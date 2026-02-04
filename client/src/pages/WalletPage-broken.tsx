@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import {
   Card,
@@ -12,12 +13,42 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { getProfile, listTransactions } from "@/lib/api";
+import type { Profile, Transaction } from "@shared/schema";
 
 export default function WalletPage() {
-  const { balance, orders, withdrawFunds } = useStore();
+  const { profile } = useStore();
   const { toast } = useToast();
+  const [profileData, setProfileData] = useState<Profile | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadData = async () => {
+    if (!profile?.id) return;
+    
+    try {
+      setIsLoading(true);
+      const [profileInfo, txList] = await Promise.all([
+        getProfile(profile.id),
+        listTransactions(profile.id),
+      ]);
+      setProfileData(profileInfo);
+      setTransactions(txList);
+    } catch (error) {
+      console.error("Failed to load wallet data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 15000); // Refresh every 15s
+    return () => clearInterval(interval);
+  }, [profile?.id]);
 
   const handleWithdraw = () => {
+    const balance = parseFloat(profileData?.balance || "0");
     if (balance <= 0) {
       toast({
         title: "Solde insuffisant",
@@ -27,17 +58,12 @@ export default function WalletPage() {
       return;
     }
 
-    withdrawFunds();
     toast({
-      title: "Retrait effectué !",
-      description: "L'argent a été envoyé sur votre compte Mobile Money.",
+      title: "Demande envoyée",
+      description: "Votre retrait sera traité dans les prochaines minutes.",
       className: "bg-green-600 text-white border-none",
     });
   };
-
-  const transactions = orders
-    .filter((o) => o.status === "delivered")
-    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
   return (
     <div className="space-y-6">
@@ -48,22 +74,37 @@ export default function WalletPage() {
         <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
 
-        <CardHeader>
-          <CardTitle className="text-sm font-medium text-white/80 flex items-center gap-2">
-            <Wallet className="h-4 w-4" />
-            Solde Disponible
-          </CardTitle>
-          <div className="mt-2">
-            <span className="text-4xl font-bold font-mono tracking-tight">
-              {balance.toLocaleString()}
-            </span>
-            <span className="text-lg ml-2 opacity-80">FC</span>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={handleWithdraw}
-            variant="secondary"
+        {isLoading ? (
+          <CardContent className="relative z-10 p-8">
+            <p className="text-white/80">Chargement...</p>
+          </CardContent>
+        ) : (
+          <>
+            <CardHeader className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet className="h-5 w-5 text-white/80" />
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-white/80">
+                  Solde disponible
+                </CardTitle>
+              </div>
+              <p className="text-5xl font-black tracking-tighter">
+                {parseFloat(profileData?.balance || "0").toLocaleString()} <span className="text-3xl">FC</span>
+              </p>
+            </CardHeader>
+
+            <CardContent className="relative z-10 flex gap-3 pt-0">
+              <Button
+                variant="ghost"
+                className="flex-1 bg-white/20 hover:bg-white/30 text-white font-black uppercase tracking-wider h-12 rounded-xl"
+                onClick={handleWithdraw}
+                disabled={parseFloat(profileData?.balance || "0") <= 0}
+              >
+                <ArrowUpRight className="mr-2 h-5 w-5" />
+                Retirer
+              </Button>
+            </CardContent>
+          </>
+        )}
             className="w-full bg-white text-secondary hover:bg-white/90 font-bold border-none shadow-sm"
           >
             <ArrowUpRight className="mr-2 h-4 w-4" />

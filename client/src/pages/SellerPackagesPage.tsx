@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,14 +7,36 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { listOrders } from "@/lib/api";
+import type { Order } from "@shared/schema";
 
 export default function SellerPackagesPage() {
-  const { orders } = useStore();
+  const { profile } = useStore();
   const [, setLocation] = useLocation();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Filter orders (assuming all orders in store are the seller's for this prototype)
-  // Sort by newest first
-  const myOrders = [...orders].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const loadOrders = async () => {
+    if (!profile?.id) return;
+    
+    try {
+      setIsLoading(true);
+      const sellerOrders = await listOrders({ sellerId: profile.id });
+      setOrders(sellerOrders.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ));
+    } catch (error) {
+      console.error("Failed to load orders:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+    const interval = setInterval(loadOrders, 10000); // Refresh every 10s
+    return () => clearInterval(interval);
+  }, [profile?.id]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -48,62 +71,71 @@ export default function SellerPackagesPage() {
            </Button>
            <div>
              <h1 className="text-xl font-black text-secondary tracking-tight">Mes Colis</h1>
-             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Historique des envois</p>
+             <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Historique des livraisons</p>
            </div>
          </div>
-         <Button onClick={() => setLocation("/")} size="sm" className="bg-black text-white rounded-xl font-bold text-xs">
-           Nouvelle Course
+         <Button 
+           variant="default" 
+           className="bg-secondary text-white font-black uppercase tracking-widest text-xs rounded-xl"
+           onClick={() => setLocation("/order")}
+         >
+           Nouvelle course
          </Button>
       </div>
 
-      <div className="p-6 space-y-4 max-w-2xl mx-auto">
-        {myOrders.length === 0 ? (
-          <div className="text-center py-20 opacity-50">
-            <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-            <p className="font-bold text-gray-500">Aucun colis envoyé pour le moment.</p>
+      <div className="p-6 space-y-4">
+        {isLoading ? (
+          <p className="text-center py-12 text-sm font-bold text-muted-foreground">Chargement...</p>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-16 space-y-4">
+            <Package className="h-16 w-16 text-gray-300 mx-auto" />
+            <p className="text-sm font-bold text-muted-foreground uppercase">Aucun colis pour le moment</p>
+            <Button onClick={() => setLocation("/order")} className="bg-secondary text-white">
+              Créer une course
+            </Button>
           </div>
         ) : (
-          myOrders.map((order) => (
+          orders.map(order => (
             <Card 
               key={order.id} 
-              className="border-none shadow-sm hover:shadow-md transition-shadow bg-white rounded-2xl overflow-hidden group cursor-pointer"
+              className="border-none shadow-md bg-white rounded-3xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => setLocation(`/tracking?token=${order.trackingToken}`)}
             >
-              <CardContent className="p-5">
-                <div className="flex justify-between items-start mb-4">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm ${getStatusColor(order.status)}`}>
-                      {getStatusIcon(order.status)}
+                    <div className={`w-10 h-10 rounded-2xl ${getStatusColor(order.status)} bg-opacity-10 flex items-center justify-center`}>
+                      <div className={`${getStatusColor(order.status)} text-white p-2 rounded-xl`}>
+                        {getStatusIcon(order.status)}
+                      </div>
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 leading-none">{order.recipientName}</h3>
-                      <p className="text-xs text-gray-500 mt-1">{format(new Date(order.timestamp), "d MMM, HH:mm", { locale: fr })}</p>
+                      <h3 className="font-black text-secondary text-lg uppercase tracking-tight">{order.recipientName}</h3>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">{format(new Date(order.createdAt), "d MMM yyyy 'à' HH:mm", { locale: fr })}</p>
                     </div>
                   </div>
-                  <Badge className={`${getStatusColor(order.status)} border-none text-white font-bold px-3 py-1`}>
+                  <Badge className={`${getStatusColor(order.status)} text-white text-[9px] font-black uppercase`}>
                     {getStatusLabel(order.status)}
                   </Badge>
                 </div>
-
-                <div className="pl-[3.25rem] space-y-3">
-                   <div className="relative pl-4 border-l-2 border-gray-100 space-y-4 py-1">
-                      <div className="relative">
-                        <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-gray-300 ring-4 ring-white"></div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Destination</p>
-                        <p className="text-sm font-medium text-gray-800 line-clamp-1">{order.address}</p>
-                      </div>
-                   </div>
-
-                   <div className="flex items-center justify-between pt-3 border-t border-gray-50">
-                     <div className="flex flex-col">
-                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Prix</span>
-                       <span className="font-black text-lg text-secondary">{(order.price).toLocaleString()} FC</span>
-                     </div>
-                     <div className="flex flex-col items-end">
-                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tracking</span>
-                       <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 select-all">{order.trackingToken}</span>
-                     </div>
-                   </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-gray-700 font-medium">{order.deliveryAddress}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">
+                      #{order.trackingToken}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-black text-secondary">{parseFloat(order.price).toLocaleString()} FC</p>
+                      {order.paymentMethod === 'cod' && parseFloat(order.articlePrice) > 0 && (
+                        <p className="text-[10px] text-gray-500 font-bold">+ {parseFloat(order.articlePrice).toLocaleString()} FC article</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
