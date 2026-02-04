@@ -103,6 +103,7 @@ export default function OrderPage() {
       setDeliveryCoords({ lat, lng });
       form.setValue("deliveryAddress", address);
     }
+    setActiveField(null); // Clear active field to hide yellow text
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -125,6 +126,24 @@ export default function OrderPage() {
     setPickupCoords(null);
     setDeliveryCoords(null);
   }
+
+  const paymentMethod = form.watch("paymentMethod");
+
+  // Mock address suggestions
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const handleAddressChange = async (value: string) => {
+    if (value.length > 3) {
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${value}&limit=5`);
+        const data = await response.json();
+        setSuggestions(data.map((item: any) => item.display_name));
+      } catch (e) {
+        setSuggestions([]);
+      }
+    } else {
+      setSuggestions([]);
+    }
+  };
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-80px)] overflow-hidden bg-white">
@@ -159,10 +178,31 @@ export default function OrderPage() {
                               "pl-10 h-12 bg-white border-0 shadow-sm rounded-xl font-medium focus-visible:ring-2 focus-visible:ring-black transition-all",
                               activeField === 'pickup' && "ring-2 ring-black"
                             )} 
-                            {...field} 
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              handleAddressChange(e.target.value);
+                            }}
                             onFocus={() => setActiveField('pickup')}
                           />
-                          {activeField === 'pickup' && (
+                          {/* Suggestions Dropdown */}
+                          {activeField === 'pickup' && suggestions.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-xl z-[100] mt-2 border border-gray-100 max-h-60 overflow-y-auto">
+                              {suggestions.map((suggestion, idx) => (
+                                <div 
+                                  key={idx} 
+                                  className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-50 last:border-none"
+                                  onClick={() => {
+                                    form.setValue("pickupAddress", suggestion);
+                                    setSuggestions([]);
+                                  }}
+                                >
+                                  {suggestion}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {activeField === 'pickup' && !field.value && (
                              <div className="absolute right-3 top-3.5 text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">
                                Sélectionnez sur la carte
                              </div>
@@ -189,10 +229,31 @@ export default function OrderPage() {
                               "pl-10 h-12 bg-white border-0 shadow-sm rounded-xl font-medium focus-visible:ring-2 focus-visible:ring-black transition-all",
                               activeField === 'delivery' && "ring-2 ring-black"
                             )} 
-                            {...field} 
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              handleAddressChange(e.target.value);
+                            }}
                             onFocus={() => setActiveField('delivery')}
                           />
-                          {activeField === 'delivery' && (
+                          {/* Suggestions Dropdown */}
+                          {activeField === 'delivery' && suggestions.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-xl z-[100] mt-2 border border-gray-100 max-h-60 overflow-y-auto">
+                              {suggestions.map((suggestion, idx) => (
+                                <div 
+                                  key={idx} 
+                                  className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-50 last:border-none"
+                                  onClick={() => {
+                                    form.setValue("deliveryAddress", suggestion);
+                                    setSuggestions([]);
+                                  }}
+                                >
+                                  {suggestion}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {activeField === 'delivery' && !field.value && (
                              <div className="absolute right-3 top-3.5 text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">
                                Sélectionnez sur la carte
                              </div>
@@ -244,11 +305,25 @@ export default function OrderPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
+                  {paymentMethod === 'cod' && (
+                    <FormField
+                      control={form.control}
+                      name="articlePrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-black uppercase tracking-widest">Prix Article (FC)</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="À récupérer" className="h-12 bg-gray-50 border-gray-100 rounded-xl font-black text-lg" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  )}
                   <FormField
                     control={form.control}
                     name="price"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className={cn(paymentMethod !== 'cod' && "col-span-2")}>
                         <FormLabel className="text-[10px] font-black uppercase tracking-widest">Prix Livraison (FC)</FormLabel>
                         <FormControl>
                           <Input type="number" className="h-12 bg-gray-50 border-gray-100 rounded-xl font-black text-lg" {...field} />
@@ -256,6 +331,8 @@ export default function OrderPage() {
                       </FormItem>
                     )}
                   />
+                  
+                </div>
                   <FormField
                     control={form.control}
                     name="paymentMethod"
@@ -274,7 +351,6 @@ export default function OrderPage() {
                       </FormItem>
                     )}
                   />
-                </div>
               </div>
 
               <Button type="submit" className="w-full h-14 bg-black hover:bg-gray-800 text-white font-bold text-lg rounded-xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
@@ -303,13 +379,7 @@ export default function OrderPage() {
             {/* Custom Zoom Control could go here */}
           </MapContainer>
           
-          {/* Map Overlay Info */}
-          <div className="absolute top-6 right-6 z-[400] bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm border border-gray-100 pointer-events-none md:pointer-events-auto">
-             <div className="flex items-center gap-2">
-               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-               <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Service Actif</span>
-             </div>
-          </div>
+          {/* Map Overlay Info - REMOVED per user request */}
       </div>
     </div>
   );
