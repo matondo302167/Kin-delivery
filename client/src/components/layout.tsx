@@ -43,7 +43,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <h1 className="text-xl font-black font-display text-secondary tracking-tight leading-none">
-              KinDelivery
+              KOLISA
             </h1>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">{userRole}</p>
           </div>

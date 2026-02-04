@@ -70,7 +70,7 @@ export default function RegisterPage() {
             </div>
           </div>
         </div>
-        <p className="text-[10px] uppercase tracking-widest text-white/40">© 2026 KinDelivery RDC</p>
+        <p className="text-[10px] uppercase tracking-widest text-white/40">© 2026 KOLISA RDC</p>
       </div>
 
       {/* Right Side - Form */}

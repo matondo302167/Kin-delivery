@@ -17,7 +17,7 @@ export default function AboutPage() {
       <main className="container mx-auto px-6 md:px-20 py-12 max-w-4xl">
         <h1 className="text-4xl font-black text-secondary mb-8">À propos de nous</h1>
         <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-          KinDelivery est la première plateforme logistique digitale 100% kinoise. 
+          KOLISA est la première plateforme logistique digitale 100% kinoise. 
           Née du constat que la logistique du dernier kilomètre à Kinshasa est un défi majeur, 
           nous avons créé une solution technologique adaptée à nos réalités locales.
         </p>

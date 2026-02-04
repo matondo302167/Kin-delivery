@@ -23,7 +23,7 @@ export default function SellerDetailsPage() {
               <span className="text-primary">Développez votre business.</span>
             </h2>
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-              KinDelivery Business est conçu pour les commerçants de Kinshasa. 
+              KOLISA Business est conçu pour les commerçants de Kinshasa. 
               Fini les tracas logistiques, concentrez-vous sur vos ventes, nous gérons le reste.
             </p>
             <Button onClick={() => setLocation('/register')} className="bg-secondary text-white px-8 h-12 rounded-full font-bold">
@@ -36,7 +36,7 @@ export default function SellerDetailsPage() {
         </div>
 
         <section className="mb-20">
-          <h3 className="text-2xl font-black text-secondary mb-8">Pourquoi choisir KinDelivery ?</h3>
+          <h3 className="text-2xl font-black text-secondary mb-8">Pourquoi choisir KOLISA ?</h3>
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { title: "Livraison Express", desc: "Vos clients livrés en moins de 2h partout à Kinshasa.", icon: Zap },

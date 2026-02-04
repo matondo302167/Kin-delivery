@@ -17,7 +17,7 @@ export default function CompanyPage() {
       <main className="container mx-auto px-6 md:px-20 py-12">
         <h1 className="text-4xl font-black text-secondary mb-8">Entreprise</h1>
         <p className="text-lg text-gray-600 mb-8">
-          KinDelivery est une entreprise enregistrée en RDC, dédiée à l'amélioration de la logistique urbaine.
+          KOLISA est une entreprise enregistrée en RDC, dédiée à l'amélioration de la logistique urbaine.
         </p>
         
         <div className="bg-gray-50 p-8 rounded-3xl mb-8">

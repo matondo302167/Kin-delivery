@@ -26,7 +26,7 @@ export default function CourierDetailsPage() {
               <span className="text-primary">Encaissez.</span>
             </h2>
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-              Devenez votre propre patron. Avec KinDelivery, vous choisissez vos horaires et vous êtes payé chaque semaine pour vos livraisons.
+              Devenez votre propre patron. Avec KOLISA, vous choisissez vos horaires et vous êtes payé chaque semaine pour vos livraisons.
             </p>
             <Button onClick={() => setLocation('/register')} className="bg-secondary text-white px-8 h-12 rounded-full font-bold">
               Devenir Livreur
