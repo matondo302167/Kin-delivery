@@ -12,6 +12,7 @@ import courierIllustration from "@/assets/courier-illustration.png";
 import sellerIllustration from "@/assets/seller-illustration.png";
 import africanDeliveryIllustration from "@/assets/african-delivery-illustration.png";
 import sendParcelDrawing from "@/assets/send-parcel-drawing.png";
+import kolisaLogo from "@/assets/kolisa-logo.png";
 
 export default function WelcomePage() {
   const { setRole } = useStore();
@@ -66,7 +67,8 @@ export default function WelcomePage() {
     <div className="min-h-screen bg-white font-sans text-black overflow-x-hidden">
       {/* Header / Navbar harmonisé avec les autres pages */}
       <header className="bg-white border-b border-gray-100 px-6 md:px-20 py-4 flex items-center justify-between sticky top-0 z-[1000]">
-        <div className="flex items-center gap-12">
+        <div className="flex items-center gap-2">
+          <img src={kolisaLogo} alt="KOLISA Logo" className="h-10 w-10 object-contain" />
           <h1 className="text-2xl font-black tracking-tighter text-secondary">KOLISA</h1>
         </div>
         <div className="flex items-center gap-6">
@@ -82,10 +84,17 @@ export default function WelcomePage() {
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary">
               <MapPin className="h-3 w-3" /> {locationName}
             </div>
-            <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-secondary">
-              Où est votre <br /> 
-              <span className="text-primary italic font-black">colis ?</span>
-            </h2>
+            <div className="relative">
+               <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-secondary relative z-10">
+                 Où est votre <br /> 
+                 <span className="text-primary italic font-black">colis ?</span>
+               </h2>
+               <img 
+                 src={kolisaLogo} 
+                 alt="Logo" 
+                 className="absolute -top-6 -left-6 w-16 h-16 opacity-10 -rotate-12 z-0" 
+               />
+            </div>
           </div>
 
           {/* Nouveau Design du champ de suivi */}
