@@ -11,6 +11,7 @@ import heroCourier from "@/assets/hero-courier-illustration.png";
 import courierIllustration from "@/assets/courier-illustration.png";
 import sellerIllustration from "@/assets/seller-illustration.png";
 import africanDeliveryIllustration from "@/assets/african-delivery-illustration.png";
+import sendParcelDrawing from "@/assets/send-parcel-drawing.png";
 
 export default function WelcomePage() {
   const { setRole } = useStore();
