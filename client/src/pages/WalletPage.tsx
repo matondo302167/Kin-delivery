@@ -5,7 +5,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Wallet, History, ArrowDownLeft } from "lucide-react";
@@ -105,15 +104,6 @@ export default function WalletPage() {
             </CardContent>
           </>
         )}
-            className="w-full bg-white text-secondary hover:bg-white/90 font-bold border-none shadow-sm"
-          >
-            <ArrowUpRight className="mr-2 h-4 w-4" />
-            Retirer (Mobile Money)
-          </Button>
-          <p className="text-xs text-center text-white/60 mt-3">
-            Compatible: M-Pesa, Orange Money, Airtel
-          </p>
-        </CardContent>
       </Card>
 
       <div className="space-y-4">
@@ -130,9 +120,9 @@ export default function WalletPage() {
               </p>
             ) : (
               <div className="space-y-4">
-                {transactions.map((t) => (
+                {transactions.map((tx) => (
                   <div
-                    key={t.id}
+                    key={tx.id}
                     className="flex items-center justify-between border-b border-border/40 pb-3 last:border-0 last:pb-0"
                   >
                     <div className="flex items-center gap-3">
@@ -140,14 +130,14 @@ export default function WalletPage() {
                         <ArrowDownLeft className="h-4 w-4 text-green-700" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">Livraison {t.id}</p>
+                        <p className="font-medium text-sm">{tx.description || `Transaction ${tx.id}`}</p>
                         <p className="text-xs text-muted-foreground capitalize">
-                          {format(t.timestamp, "dd MMM, HH:mm", { locale: fr })}
+                          {format(new Date(tx.createdAt), "dd MMM, HH:mm", { locale: fr })}
                         </p>
                       </div>
                     </div>
                     <span className="font-bold text-green-600 font-mono">
-                      +{t.price.toLocaleString()} FC
+                      +{parseFloat(tx.amount).toLocaleString()} FC
                     </span>
                   </div>
                 ))}

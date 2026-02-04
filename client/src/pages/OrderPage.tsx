@@ -85,7 +85,7 @@ export default function OrderPage() {
     defaultValues: {
       recipientName: "",
       recipientPhone: "",
-      pickupAddress: "",
+      pickupAddress: "Avenue de la Libération, Kinshasa, RDC",
       deliveryAddress: "",
       price: 2500,
       articlePrice: 0,

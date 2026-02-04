@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { createProfile } from "@/lib/api";
+import type { UserRole } from "@/lib/store";
 import heroCourier from "@/assets/hero-courier-illustration.png";
 import courierIllustration from "@/assets/courier-illustration.png";
 import sellerIllustration from "@/assets/seller-illustration.png";
@@ -15,7 +17,7 @@ import sendParcelDrawing from "@/assets/send-parcel-drawing.png";
 import kolisaLogo from "@/assets/kolisa-logo.png";
 
 export default function WelcomePage() {
-  const { setRole } = useStore();
+  const { setProfile } = useStore();
   const [, setLocation] = useLocation();
   const [trackingCode, setTrackingCode] = useState("");
   const { toast } = useToast();
@@ -58,6 +60,27 @@ export default function WelcomePage() {
       toast({
         title: "Code requis",
         description: "Veuillez entrer un numéro de suivi pour continuer.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRoleSelection = async (role: UserRole, redirectTo: string) => {
+    try {
+      // Create a temporary profile for the user
+      const profile = await createProfile({
+        name: role === 'seller' ? 'Vendeur' : 'Coursier',
+        phone: `+243${Math.floor(900000000 + Math.random() * 100000000)}`,
+        role: role!,
+      });
+      
+      setProfile(profile);
+      setLocation(redirectTo);
+    } catch (error) {
+      console.error('Failed to create profile:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le profil. Réessayez.",
         variant: "destructive",
       });
     }
@@ -147,7 +170,7 @@ export default function WelcomePage() {
               </p>
               <div className="flex items-center gap-6 pt-4">
                 <Button 
-                  onClick={() => { setRole('seller'); setLocation('/'); }}
+                  onClick={() => handleRoleSelection('seller', '/')}
                   className="bg-black text-white hover:bg-gray-800 px-10 h-14 rounded-xl font-black uppercase tracking-widest text-xs"
                 >
                   Envoyer un colis
@@ -176,7 +199,7 @@ export default function WelcomePage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-12">
             {/* Option: Devenir Livreur */}
-            <div className="bg-[#F6F6F6] p-12 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 group cursor-pointer hover:shadow-xl transition-all" onClick={() => { setRole('courier'); setLocation('/dashboard'); }}>
+            <div className="bg-[#F6F6F6] p-12 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 group cursor-pointer hover:shadow-xl transition-all" onClick={() => handleRoleSelection('courier', '/dashboard')}>
               <div className="flex-1 space-y-4">
                 <h4 className="text-3xl font-black tracking-tighter text-secondary">Devenir Livreur</h4>
                 <p className="text-sm text-gray-500 font-medium">Gagnez de l'argent en livrant selon votre propre horaire.</p>

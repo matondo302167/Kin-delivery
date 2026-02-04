@@ -53,11 +53,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <Link href="/profile">
             <button className="flex items-center gap-2 group transition-transform active:scale-95">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-black text-secondary leading-none">{profile.name}</p>
+                <p className="text-xs font-black text-secondary leading-none">{profile?.name || 'Utilisateur'}</p>
                 <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Profil</p>
               </div>
               <Avatar className="h-9 w-9 border-2 border-white shadow-md ring-2 ring-primary/20">
-                <AvatarImage src={profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`} />
+                <AvatarImage src={profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name || 'user'}`} />
                 <AvatarFallback><User /></AvatarFallback>
               </Avatar>
             </button>
