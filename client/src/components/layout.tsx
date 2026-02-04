@@ -68,7 +68,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="container max-w-lg mx-auto p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <main className="container mx-auto p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {children}
       </main>
 
