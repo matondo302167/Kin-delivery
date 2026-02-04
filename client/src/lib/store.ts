@@ -94,11 +94,12 @@ export const useStore = create<AppState>((set) => ({
     set((state) => {
       const order = state.orders.find((o) => o.id === id);
       if (order && order.status !== 'delivered') {
+        const amountToAdd = order.price + (order.paymentMethod === 'cod' ? order.articlePrice : 0);
         return {
           orders: state.orders.map((o) =>
             o.id === id ? { ...o, status: 'delivered' } : o
           ),
-          balance: state.balance + order.price,
+          balance: state.balance + amountToAdd,
         };
       }
       return state;

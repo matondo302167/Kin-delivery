@@ -152,7 +152,7 @@ export default function OrderPage() {
     
     toast({
       title: "Course lancée !",
-      description: `Votre coursier arrive. Tracking: ${token}`,
+      description: `SMS envoyé au client avec le code secret. Tracking: ${token}`,
     });
     form.reset();
     setPickupCoords(null);
