@@ -32,13 +32,13 @@ function Router() {
       <Route path="/pricing" component={PricingPage} />
       <Route path="/product" component={ProductPage} />
       <Route path="/company" component={CompanyPage} />
+      <Route path="/tracking" component={TrackingPage} />
       <Route path="*">
         {!userRole ? <Redirect to="/welcome" /> : (
           <Layout>
             <Switch>
               <Route path="/" component={OrderPage} />
               <Route path="/dashboard" component={DashboardPage} />
-              <Route path="/tracking" component={TrackingPage} />
               <Route path="/wallet" component={WalletPage} />
               <Route path="/profile" component={ProfilePage} />
               <Route component={NotFound} />

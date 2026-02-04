@@ -18,8 +18,7 @@ export default function WelcomePage() {
 
   const handleTrack = () => {
     if (trackingCode.trim()) {
-      // Force navigation to ensure TrackingPage picks up the URL parameter correctly
-      window.location.href = `/tracking?token=${trackingCode.trim().toUpperCase()}`;
+      setLocation(`/tracking?token=${trackingCode.trim().toUpperCase()}`);
     }
   };
 
