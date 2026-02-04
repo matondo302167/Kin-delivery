@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertOrderSchema, insertProfileSchema } from "@shared/schema";
 import { z } from "zod";
+import { sendPinCodeSms, sendDeliveryConfirmationSms } from "./services/twilioService";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 // Generate 4-digit PIN code
 function generatePinCode(): string {
@@ -120,13 +122,23 @@ export async function registerRoutes(
         trackingToken,
       });
       
-      // TODO: Send SMS with PIN code to recipient using Twilio
-      // For now, return PIN in response (will be removed after SMS integration)
+      // Send SMS with PIN code to recipient using Twilio
+      const smsResult = await sendPinCodeSms(
+        orderData.recipientPhone,
+        pinCode,
+        trackingToken
+      );
+      
+      if (!smsResult.success) {
+        console.error("Failed to send SMS:", smsResult.error);
+      }
       
       res.status(201).json({
         order,
-        pinCode, // TEMP: Remove after SMS integration
-        message: `SMS envoyé au ${orderData.recipientPhone} avec le code PIN`
+        smsStatus: smsResult.success ? "sent" : "failed",
+        message: smsResult.success 
+          ? `SMS envoyé au ${orderData.recipientPhone} avec le code PIN`
+          : `Commande créée mais SMS non envoyé: ${smsResult.error}`
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -224,6 +236,9 @@ export async function registerRoutes(
         });
       }
       
+      // Send delivery confirmation SMS
+      await sendDeliveryConfirmationSms(order.recipientPhone, order.trackingToken);
+      
       res.json({ 
         order: updatedOrder,
         message: "Livraison validée avec succès"
@@ -245,6 +260,9 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to fetch transactions" });
     }
   });
+  
+  // Register object storage routes for photo uploads
+  registerObjectStorageRoutes(app);
 
   return httpServer;
 }
