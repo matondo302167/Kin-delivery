@@ -35,7 +35,7 @@ export default function WelcomePage() {
       {/* Header / Navbar harmonisé avec les autres pages */}
       <header className="bg-white border-b border-gray-100 px-6 md:px-20 py-4 flex items-center justify-between sticky top-0 z-[1000]">
         <div className="flex items-center gap-12">
-          <h1 className="text-2xl font-black tracking-tighter text-secondary">KINDELIVERY</h1>
+          <h1 className="text-2xl font-black tracking-tighter text-secondary">KOLISA</h1>
         </div>
         <div className="flex items-center gap-6">
           <button onClick={() => setLocation('/profile')} className="text-sm font-bold text-secondary">Connexion</button>
@@ -202,7 +202,7 @@ export default function WelcomePage() {
       {/* Footer minimaliste */}
       <footer className="bg-secondary text-white px-6 md:px-20 py-16 text-left border-t border-white/5">
         <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-12">
-          <h2 className="text-3xl font-black tracking-tighter">KINDELIVERY</h2>
+          <h2 className="text-3xl font-black tracking-tighter">KOLISA</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-12">
             <div className="space-y-4">
               <p className="font-black uppercase tracking-widest text-[10px] text-white/40">Entreprise</p>

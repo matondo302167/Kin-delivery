@@ -63,7 +63,7 @@ export const useStore = create<AppState>((set) => ({
   profile: {
     name: "Felix Kabange",
     phone: "0812345678",
-    email: "felix@kindelivery.cd"
+    email: "felix@kolisa.cd"
   },
   setRole: (role) => set({ userRole: role }),
   updateProfile: (updates) => set((state) => ({ profile: { ...state.profile, ...updates } })),

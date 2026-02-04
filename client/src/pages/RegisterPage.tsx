@@ -47,7 +47,7 @@ export default function RegisterPage() {
       {/* Left Side - Image/Info */}
       <div className="hidden md:flex md:w-1/2 bg-secondary text-white p-12 flex-col justify-between">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter mb-4">KINDELIVERY</h1>
+          <h1 className="text-4xl font-black tracking-tighter mb-4">KOLISA</h1>
           <p className="text-white/60 font-medium">Rejoignez la révolution logistique à Kinshasa.</p>
         </div>
         <div className="space-y-6">
