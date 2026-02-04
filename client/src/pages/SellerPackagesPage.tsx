@@ -64,7 +64,11 @@ export default function SellerPackagesPage() {
           </div>
         ) : (
           myOrders.map((order) => (
-            <Card key={order.id} className="border-none shadow-sm hover:shadow-md transition-shadow bg-white rounded-2xl overflow-hidden group">
+            <Card 
+              key={order.id} 
+              className="border-none shadow-sm hover:shadow-md transition-shadow bg-white rounded-2xl overflow-hidden group cursor-pointer"
+              onClick={() => setLocation(`/tracking?token=${order.trackingToken}`)}
+            >
               <CardContent className="p-5">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
