@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,37 @@ export default function WelcomePage() {
   const [, setLocation] = useLocation();
   const [trackingCode, setTrackingCode] = useState("");
   const { toast } = useToast();
+  const [locationName, setLocationName] = useState("Kinshasa, RDC");
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            );
+            const data = await response.json();
+            if (data && data.address) {
+              const city = data.address.city || data.address.town || data.address.village || data.address.county;
+              const country = data.address.country;
+              if (city && country) {
+                setLocationName(`${city}, ${country}`);
+              } else if (country) {
+                setLocationName(country);
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching location:", error);
+          }
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+        }
+      );
+    }
+  }, []);
 
   const handleTrack = () => {
     if (trackingCode.trim()) {
@@ -48,7 +79,7 @@ export default function WelcomePage() {
         <div className="space-y-10 max-w-xl">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary">
-              <MapPin className="h-3 w-3" /> Kinshasa, RDC
+              <MapPin className="h-3 w-3" /> {locationName}
             </div>
             <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-secondary">
               Où est votre <br /> 
