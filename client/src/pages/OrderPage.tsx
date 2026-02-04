@@ -35,10 +35,16 @@ const formSchema = z.object({
   paymentMethod: z.enum(["cod", "mobile_money"]),
 });
 
-function LocationMarker({ activeField, onLocationSelect }: { activeField: 'pickup' | 'delivery' | null, onLocationSelect: (lat: number, lng: number) => void }) {
+function LocationMarker({ activeField, onLocationSelect, userLocation }: { activeField: 'pickup' | 'delivery' | null, onLocationSelect: (lat: number, lng: number) => void, userLocation: L.LatLng | null }) {
   const [pickupPos, setPickupPos] = useState<L.LatLng | null>(null);
   const [deliveryPos, setDeliveryPos] = useState<L.LatLng | null>(null);
   const map = useMap();
+
+  useEffect(() => {
+    if (userLocation) {
+       map.flyTo(userLocation, 15);
+    }
+  }, [userLocation, map]);
 
   useMapEvents({
     click(e: LeafletMouseEvent) {
@@ -56,6 +62,7 @@ function LocationMarker({ activeField, onLocationSelect }: { activeField: 'picku
 
   return (
     <>
+      {userLocation && <Marker position={userLocation} icon={new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png', iconSize: [25, 41], iconAnchor: [12, 41] })}><Popup>Votre position</Popup></Marker>}
       {pickupPos && <Marker position={pickupPos} icon={new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-black.png', iconSize: [25, 41], iconAnchor: [12, 41] })}><Popup>Point de départ</Popup></Marker>}
       {deliveryPos && <Marker position={deliveryPos} icon={new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png', iconSize: [25, 41], iconAnchor: [12, 41] })}><Popup>Point d'arrivée</Popup></Marker>}
     </>
@@ -69,6 +76,7 @@ export default function OrderPage() {
   const [activeField, setActiveField] = useState<'pickup' | 'delivery' | null>(null);
   const [pickupCoords, setPickupCoords] = useState<{lat: number, lng: number} | null>(null);
   const [deliveryCoords, setDeliveryCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [userLocation, setUserLocation] = useState<L.LatLng | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -92,6 +100,30 @@ export default function OrderPage() {
       return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     }
   };
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation(new L.LatLng(latitude, longitude));
+          
+          // Auto-fill pickup address with current location
+          const address = await fetchAddress(latitude, longitude);
+          form.setValue("pickupAddress", address);
+          setPickupCoords({ lat: latitude, lng: longitude });
+          
+          toast({
+             title: "Localisation activée",
+             description: "Votre position a été définie comme point de départ.",
+          });
+        },
+        (error) => {
+          console.error("Error getting location", error);
+        }
+      );
+    }
+  }, []);
 
   const handleLocationSelect = async (lat: number, lng: number) => {
     const address = await fetchAddress(lat, lng);
@@ -374,7 +406,7 @@ export default function OrderPage() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
-            <LocationMarker activeField={activeField} onLocationSelect={handleLocationSelect} />
+            <LocationMarker activeField={activeField} onLocationSelect={handleLocationSelect} userLocation={userLocation} />
             
             {/* Custom Zoom Control could go here */}
           </MapContainer>
