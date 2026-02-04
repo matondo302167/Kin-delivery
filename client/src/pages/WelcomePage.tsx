@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useStore } from "@/lib/store";
+import { useToast } from "@/hooks/use-toast";
 import { Search, MapPin, ArrowRight, UserPlus, LogIn, Send, Globe, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -15,10 +16,17 @@ export default function WelcomePage() {
   const { setRole } = useStore();
   const [, setLocation] = useLocation();
   const [trackingCode, setTrackingCode] = useState("");
+  const { toast } = useToast();
 
   const handleTrack = () => {
     if (trackingCode.trim()) {
       setLocation(`/tracking?token=${trackingCode.trim().toUpperCase()}`);
+    } else {
+      toast({
+        title: "Code requis",
+        description: "Veuillez entrer un numéro de suivi pour continuer.",
+        variant: "destructive",
+      });
     }
   };
 
