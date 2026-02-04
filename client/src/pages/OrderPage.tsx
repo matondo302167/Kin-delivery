@@ -201,7 +201,7 @@ export default function OrderPage() {
                   control={form.control}
                   name="pickupAddress"
                   render={({ field }) => (
-                    <FormItem className="relative z-10">
+                    <FormItem className={cn("relative transition-all duration-200", activeField === 'pickup' ? "z-30" : "z-20")}>
                       <FormControl>
                         <div className="relative group">
                           <div className="absolute left-3 top-3.5 w-2.5 h-2.5 rounded-full bg-black border-2 border-black z-20 ring-4 ring-white" />
@@ -209,7 +209,7 @@ export default function OrderPage() {
                             placeholder="Point de départ" 
                             className={cn(
                               "pl-10 h-12 bg-white border-0 shadow-sm rounded-xl font-medium focus-visible:ring-2 focus-visible:ring-black transition-all",
-                              activeField === 'pickup' && "ring-2 ring-black"
+                              activeField === 'pickup' && "ring-2 ring-black scale-[1.02] shadow-md"
                             )} 
                             {...field}
                             onChange={(e) => {
@@ -217,22 +217,31 @@ export default function OrderPage() {
                               handleAddressChange(e.target.value);
                             }}
                             onFocus={() => setActiveField('pickup')}
+                            onBlur={() => {
+                               // Delay hiding to allow click on suggestion
+                               setTimeout(() => {
+                                 if (activeField === 'pickup') setActiveField(null);
+                               }, 200);
+                            }}
                           />
                           {/* Suggestions Dropdown */}
                           {activeField === 'pickup' && suggestions.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border border-gray-200 max-h-60 overflow-y-auto">
+                            <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border border-gray-100 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-200">
                               {suggestions.map((suggestion, idx) => (
                                 <div 
                                   key={idx} 
-                                  className="p-3 hover:bg-blue-50 cursor-pointer text-sm font-medium border-b border-gray-100 last:border-none flex items-center gap-2"
-                                  onClick={(e) => {
-                                    e.stopPropagation(); // Prevent bubbling issues
+                                  className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-50 last:border-none flex items-center gap-3 transition-colors"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault(); // Prevent blur
                                     form.setValue("pickupAddress", suggestion);
                                     setSuggestions([]);
+                                    setActiveField(null);
                                   }}
                                 >
-                                  <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
-                                  <span className="truncate">{suggestion}</span>
+                                  <div className="bg-gray-100 p-2 rounded-full shrink-0">
+                                    <MapPin className="h-4 w-4 text-gray-600" />
+                                  </div>
+                                  <span className="truncate text-gray-700">{suggestion}</span>
                                 </div>
                               ))}
                             </div>
@@ -254,7 +263,7 @@ export default function OrderPage() {
                   control={form.control}
                   name="deliveryAddress"
                   render={({ field }) => (
-                    <FormItem className="relative z-10">
+                    <FormItem className={cn("relative transition-all duration-200", activeField === 'delivery' ? "z-30" : "z-20")}>
                       <FormControl>
                         <div className="relative group">
                           <div className="absolute left-3 top-3.5 w-2.5 h-2.5 bg-black z-20 ring-4 ring-white" />
@@ -262,7 +271,7 @@ export default function OrderPage() {
                             placeholder="Point d'arrivée" 
                             className={cn(
                               "pl-10 h-12 bg-white border-0 shadow-sm rounded-xl font-medium focus-visible:ring-2 focus-visible:ring-black transition-all",
-                              activeField === 'delivery' && "ring-2 ring-black"
+                              activeField === 'delivery' && "ring-2 ring-black scale-[1.02] shadow-md"
                             )} 
                             {...field}
                             onChange={(e) => {
@@ -270,22 +279,30 @@ export default function OrderPage() {
                               handleAddressChange(e.target.value);
                             }}
                             onFocus={() => setActiveField('delivery')}
+                            onBlur={() => {
+                               setTimeout(() => {
+                                 if (activeField === 'delivery') setActiveField(null);
+                               }, 200);
+                            }}
                           />
                           {/* Suggestions Dropdown */}
                           {activeField === 'delivery' && suggestions.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border border-gray-200 max-h-60 overflow-y-auto">
+                            <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border border-gray-100 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-200">
                               {suggestions.map((suggestion, idx) => (
                                 <div 
                                   key={idx} 
-                                  className="p-3 hover:bg-blue-50 cursor-pointer text-sm font-medium border-b border-gray-100 last:border-none flex items-center gap-2"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                                  className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-50 last:border-none flex items-center gap-3 transition-colors"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
                                     form.setValue("deliveryAddress", suggestion);
                                     setSuggestions([]);
+                                    setActiveField(null);
                                   }}
                                 >
-                                  <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
-                                  <span className="truncate">{suggestion}</span>
+                                  <div className="bg-gray-100 p-2 rounded-full shrink-0">
+                                    <MapPin className="h-4 w-4 text-gray-600" />
+                                  </div>
+                                  <span className="truncate text-gray-700">{suggestion}</span>
                                 </div>
                               ))}
                             </div>
