@@ -19,6 +19,8 @@ import TrackingPage from "@/pages/TrackingPage";
 import ProfilePage from "@/pages/ProfilePage";
 import { useStore } from "@/lib/store";
 
+import SellerPackagesPage from "@/pages/SellerPackagesPage";
+
 function Router() {
   const { userRole } = useStore();
 
@@ -26,18 +28,19 @@ function Router() {
     <Switch>
       <Route path="/welcome" component={WelcomePage} />
       <Route path="/register" component={RegisterPage} />
-      <Route path="/seller-details" component={SellerDetailsPage} />
-      <Route path="/courier-details" component={CourierDetailsPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/product" component={ProductPage} />
       <Route path="/company" component={CompanyPage} />
       <Route path="/tracking" component={TrackingPage} />
+      
+      {/* Routes Protected by Role - For Prototype we assume if role is null, redirect to welcome */}
       <Route path="*">
         {!userRole ? <Redirect to="/welcome" /> : (
           <Layout>
             <Switch>
               <Route path="/" component={OrderPage} />
+              <Route path="/seller-packages" component={SellerPackagesPage} />
               <Route path="/dashboard" component={DashboardPage} />
               <Route path="/wallet" component={WalletPage} />
               <Route path="/profile" component={ProfilePage} />

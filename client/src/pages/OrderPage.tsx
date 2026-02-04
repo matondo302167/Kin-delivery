@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Phone, User, PackagePlus, Clock, Wallet, Banknote, Navigation, ArrowRight } from "lucide-react";
+import { MapPin, Phone, User, PackagePlus, Clock, Wallet, Banknote, Navigation, ArrowRight, Package } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -157,6 +157,9 @@ export default function OrderPage() {
     form.reset();
     setPickupCoords(null);
     setDeliveryCoords(null);
+    
+    // Redirect to packages list
+    setLocation("/seller-packages");
   }
 
   const paymentMethod = form.watch("paymentMethod");
@@ -183,9 +186,19 @@ export default function OrderPage() {
       {/* Left Panel - Uber Style */}
       <div className="w-full md:w-[450px] bg-white z-20 flex flex-col shadow-2xl h-full overflow-y-auto">
         <div className="p-8 space-y-8">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-black tracking-tighter text-secondary">Commander une course</h1>
-            <p className="text-sm text-gray-500 font-medium">Remplissez les détails pour une livraison express.</p>
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-black tracking-tighter text-secondary">Commander</h1>
+              <p className="text-sm text-gray-500 font-medium">Nouvelle livraison express.</p>
+            </div>
+            <Button 
+               variant="outline" 
+               size="icon" 
+               className="rounded-full h-12 w-12 border-2 border-gray-100 hover:bg-gray-50 hover:border-black transition-colors"
+               onClick={() => setLocation("/seller-packages")}
+            >
+               <Package className="h-5 w-5 text-secondary" />
+            </Button>
           </div>
 
           <Form {...form}>
