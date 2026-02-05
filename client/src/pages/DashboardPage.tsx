@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Truck, Clock, Phone, KeyRound, Camera, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import courierHero from "@/assets/courier-hero.png";
+import courierHero from "@/assets/courier-illustration.png";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";

@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Layout from "@/components/layout";
 import WelcomePage from "@/pages/WelcomePage";
 import RegisterPage from "@/pages/RegisterPage";
+import LoginPage from "@/pages/LoginPage";
 import SellerDetailsPage from "@/pages/SellerDetailsPage";
 import CourierDetailsPage from "@/pages/CourierDetailsPage";
 import AboutPage from "@/pages/AboutPage";
@@ -28,6 +29,9 @@ function Router() {
     <Switch>
       <Route path="/welcome" component={WelcomePage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/login" component={LoginPage} />
+      <Route path="/seller-details" component={SellerDetailsPage} />
+      <Route path="/courier-details" component={CourierDetailsPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/product" component={ProductPage} />

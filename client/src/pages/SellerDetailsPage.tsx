@@ -26,9 +26,14 @@ export default function SellerDetailsPage() {
               KOLISA Business est conçu pour les commerçants de Kinshasa. 
               Fini les tracas logistiques, concentrez-vous sur vos ventes, nous gérons le reste.
             </p>
-            <Button onClick={() => setLocation('/register')} className="bg-secondary text-white px-8 h-12 rounded-full font-bold">
-              Commencer maintenant
-            </Button>
+            <div className="flex gap-4">
+              <Button onClick={() => setLocation('/login')} className="bg-secondary text-white px-8 h-12 rounded-full font-bold">
+                Se connecter
+              </Button>
+              <Button onClick={() => setLocation('/register')} variant="outline" className="px-8 h-12 rounded-full font-bold">
+                Créer un compte
+              </Button>
+            </div>
           </div>
           <div className="rounded-[3rem] overflow-hidden shadow-2xl">
             <img src={sellerIllustration} alt="Seller" className="w-full h-auto" />

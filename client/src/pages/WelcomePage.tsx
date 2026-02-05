@@ -102,7 +102,7 @@ export default function WelcomePage() {
           <h1 className="text-2xl font-black tracking-tighter text-secondary">KOLISA</h1>
         </div>
         <div className="flex items-center gap-6">
-          <button onClick={() => setLocation('/profile')} className="text-sm font-bold text-secondary">Connexion</button>
+          <button onClick={() => setLocation('/login')} className="text-sm font-bold text-secondary">Connexion</button>
           <button onClick={() => setLocation('/register')} className="bg-primary text-secondary px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest hover:bg-primary/90 transition-colors">S'inscrire</button>
         </div>
       </header>
@@ -247,7 +247,7 @@ export default function WelcomePage() {
             </p>
             <div className="flex items-center gap-8">
               <Button 
-                onClick={() => setLocation('/profile')} 
+                onClick={() => setLocation('/login')} 
                 className="bg-black text-white hover:bg-gray-800 px-10 h-14 rounded-xl font-black uppercase tracking-widest text-xs"
               >
                 Se connecter

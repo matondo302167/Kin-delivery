@@ -8,7 +8,7 @@ import { Search, MapPin, Truck, CheckCircle2, Clock, Package, Banknote, Wallet, 
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
-import customerHero from "@/assets/customer-hero.png";
+import customerHero from "@/assets/african-delivery-illustration.png";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -154,10 +154,10 @@ export default function TrackingPage() {
               </div>
 
               {/* Live Map Tracking */}
-              {foundOrder.lat && foundOrder.lng && (
+              {foundOrder.deliveryLat && foundOrder.deliveryLng && (
                 <Card className="rounded-[2.5rem] overflow-hidden h-96 shadow-2xl border-4 border-white relative z-0">
                   <MapContainer 
-                    center={[foundOrder.lat, foundOrder.lng]} 
+                    center={[parseFloat(foundOrder.deliveryLat), parseFloat(foundOrder.deliveryLng)]} 
                     zoom={14} 
                     className="h-full w-full"
                   >
@@ -165,11 +165,11 @@ export default function TrackingPage() {
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                       url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" 
                     />
-                    <Marker position={[foundOrder.lat, foundOrder.lng]} />
+                    <Marker position={[parseFloat(foundOrder.deliveryLat), parseFloat(foundOrder.deliveryLng)]} />
                     {courierPos && (
                       <>
                         <Marker position={courierPos} icon={courierIcon} />
-                        <Polyline positions={[courierPos, [foundOrder.lat, foundOrder.lng]]} color="#facc15" dashArray="10, 10" />
+                        <Polyline positions={[courierPos, [parseFloat(foundOrder.deliveryLat), parseFloat(foundOrder.deliveryLng)]]} color="#facc15" dashArray="10, 10" />
                       </>
                     )}
                   </MapContainer>

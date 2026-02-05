@@ -28,9 +28,14 @@ export default function CourierDetailsPage() {
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
               Devenez votre propre patron. Avec KOLISA, vous choisissez vos horaires et vous êtes payé chaque semaine pour vos livraisons.
             </p>
-            <Button onClick={() => setLocation('/register')} className="bg-secondary text-white px-8 h-12 rounded-full font-bold">
-              Devenir Livreur
-            </Button>
+            <div className="flex gap-4">
+              <Button onClick={() => setLocation('/login')} className="bg-secondary text-white px-8 h-12 rounded-full font-bold">
+                Se connecter
+              </Button>
+              <Button onClick={() => setLocation('/register')} variant="outline" className="px-8 h-12 rounded-full font-bold">
+                Créer un compte
+              </Button>
+            </div>
           </div>
         </div>
 
