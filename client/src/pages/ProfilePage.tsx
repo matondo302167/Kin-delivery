@@ -25,9 +25,9 @@ export default function ProfilePage() {
   const form = useForm({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: profile.name,
-      phone: profile.phone,
-      email: profile.email,
+      name: profile?.name || "",
+      phone: profile?.phone || "",
+      email: profile?.email || "",
     },
   });
 
@@ -46,7 +46,7 @@ export default function ProfilePage() {
       <div className="text-center space-y-4">
         <div className="relative inline-block">
           <Avatar className="h-32 w-32 border-4 border-white shadow-2xl ring-4 ring-primary/20 mx-auto">
-            <AvatarImage src={profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`} />
+            <AvatarImage src={profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name || 'user'}`} />
             <AvatarFallback><User size={48} /></AvatarFallback>
           </Avatar>
           <button className="absolute bottom-1 right-1 bg-primary p-3 rounded-full text-primary-foreground shadow-xl active:scale-90 transition-transform">
@@ -54,8 +54,8 @@ export default function ProfilePage() {
           </button>
         </div>
         <div className="space-y-1">
-          <h2 className="text-3xl font-black font-display text-secondary italic tracking-tighter uppercase">{profile.name}</h2>
-          <p className="text-xs font-black uppercase text-muted-foreground tracking-widest">{profile.phone}</p>
+          <h2 className="text-3xl font-black font-display text-secondary italic tracking-tighter uppercase">{profile?.name || 'Utilisateur'}</h2>
+          <p className="text-xs font-black uppercase text-muted-foreground tracking-widest">{profile?.phone || 'Non renseigné'}</p>
         </div>
       </div>
 
