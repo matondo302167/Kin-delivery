@@ -10,7 +10,15 @@ KOLISA is a last-mile delivery logistics platform designed specifically for Kins
 
 Key features include Cash on Delivery (COD) support, SMS-based PIN validation for secure delivery confirmation, real-time GPS tracking with Leaflet maps, and Mobile Money integration for payments.
 
-## Recent Changes (Feb 4, 2026)
+## Recent Changes (Feb 5, 2026)
+
+- **Phone Login System**: Added `/login` page for phone number authentication
+- **Code Cleanup**: Removed unused files (DashboardPage-old.tsx, SellerPackagesPage-old.tsx, courier-hero.png, customer-hero.png)
+- **Consistent Illustrations**: All images now use flat vector style with green/yellow KOLISA branding
+- **Navigation Fixes**: Header "Connexion" button and Details pages now properly link to login
+- **TrackingPage Fix**: Corrected map coordinates to use deliveryLat/deliveryLng fields
+
+## Previous Changes (Feb 4, 2026)
 
 - **Frontend-Backend Integration Complete**: All pages now fetch data from REST API instead of Zustand mock data
 - **Automatic Profile Creation**: WelcomePage creates temporary profiles when users select their role (seller/courier)
