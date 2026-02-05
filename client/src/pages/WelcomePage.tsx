@@ -5,77 +5,12 @@ import { Search, MapPin, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import heroCourier from "@/assets/hero-courier-illustration.png";
 import courierIllustration from "@/assets/courier-illustration.png";
 import sellerIllustration from "@/assets/seller-illustration.png";
 import africanDeliveryIllustration from "@/assets/african-delivery-illustration.png";
 import sendParcelDrawing from "@/assets/send-parcel-drawing.png";
 import kolisaLogo from "@/assets/kolisa-logo.png";
-
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-const courierIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png',
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
-});
-
-const pickupIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
-});
-
-const KINSHASA_CENTER: [number, number] = [-4.3250, 15.3222];
-
-const kinshasaPoints: { pos: [number, number]; type: 'courier' | 'pickup' }[] = [
-  { pos: [-4.3117, 15.3125], type: 'courier' },
-  { pos: [-4.3380, 15.2960], type: 'pickup' },
-  { pos: [-4.3050, 15.3400], type: 'courier' },
-  { pos: [-4.3500, 15.3100], type: 'pickup' },
-  { pos: [-4.2900, 15.2800], type: 'courier' },
-  { pos: [-4.3200, 15.3500], type: 'pickup' },
-  { pos: [-4.3600, 15.2700], type: 'courier' },
-  { pos: [-4.2950, 15.3300], type: 'pickup' },
-];
-
-function AnimatedMarkers() {
-  const map = useMap();
-  const [markers, setMarkers] = useState(kinshasaPoints);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMarkers(prev => prev.map(m => ({
-        ...m,
-        pos: [
-          m.pos[0] + (Math.random() - 0.5) * 0.003,
-          m.pos[1] + (Math.random() - 0.5) * 0.003,
-        ] as [number, number],
-      })));
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <>
-      {markers.map((m, i) => (
-        <Marker 
-          key={i} 
-          position={m.pos} 
-          icon={m.type === 'courier' ? courierIcon : pickupIcon} 
-        />
-      ))}
-    </>
-  );
-}
 
 export default function WelcomePage() {
   const [, setLocation] = useLocation();
@@ -138,89 +73,79 @@ export default function WelcomePage() {
         </div>
       </header>
 
-      <section className="relative min-h-[85vh] flex items-center">
-        <div className="absolute inset-0 z-0">
-          <MapContainer 
-            center={KINSHASA_CENTER} 
-            zoom={13} 
-            className="h-full w-full"
-            zoomControl={false}
-            attributionControl={false}
-            dragging={false}
-            scrollWheelZoom={false}
-            doubleClickZoom={false}
-            touchZoom={false}
-          >
-            <TileLayer 
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            />
-            <AnimatedMarkers />
-          </MapContainer>
-          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-white/30 z-10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-white/50 z-10" />
-        </div>
-
-        <div className="relative z-20 px-6 md:px-20 py-16 w-full max-w-2xl">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-10"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary">
-                <MapPin className="h-3 w-3" /> {locationName}
-              </div>
-              <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-secondary">
+      <section className="px-6 md:px-20 py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[70vh]">
+        <div className="space-y-10 max-w-xl">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+              <MapPin className="h-3 w-3" /> {locationName}
+            </div>
+            <div className="relative">
+              <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-secondary relative z-10">
                 Livraison <br /> 
                 <span className="text-primary italic font-black">express</span> à<br />
                 Kinshasa
               </h2>
-              <p className="text-lg text-gray-500 font-medium max-w-md">
-                Envoyez et recevez vos colis partout dans la ville. Suivi en temps réel.
-              </p>
+              <img 
+                src={kolisaLogo} 
+                alt="Logo" 
+                className="absolute -top-6 -left-6 w-16 h-16 opacity-10 -rotate-12 z-0" 
+              />
             </div>
+            <p className="text-lg text-gray-500 font-medium max-w-md">
+              Envoyez et recevez vos colis partout dans la ville. Suivi en temps réel.
+            </p>
+          </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 max-w-md">
-              <Button 
-                onClick={() => setLocation('/login')}
-                className="bg-secondary text-white hover:bg-black h-14 px-8 rounded-xl font-black uppercase tracking-widest text-xs flex-1"
-                data-testid="button-hero-login"
-              >
-                Se connecter <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-              <Button 
-                onClick={() => setLocation('/register')}
-                variant="outline"
-                className="h-14 px-8 rounded-xl font-black uppercase tracking-widest text-xs border-2"
-                data-testid="button-hero-register"
-              >
-                S'inscrire
-              </Button>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+            <Button 
+              onClick={() => setLocation('/login')}
+              className="bg-secondary text-white hover:bg-black h-14 px-8 rounded-xl font-black uppercase tracking-widest text-xs flex-1"
+              data-testid="button-hero-login"
+            >
+              Se connecter <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+            <Button 
+              onClick={() => setLocation('/register')}
+              variant="outline"
+              className="h-14 px-8 rounded-xl font-black uppercase tracking-widest text-xs border-2"
+              data-testid="button-hero-register"
+            >
+              S'inscrire
+            </Button>
+          </div>
 
-            <div className="relative group max-w-md pt-4">
-              <div className="relative flex items-center bg-white p-2 rounded-full shadow-2xl border border-gray-200">
-                <div className="pl-4 pr-2">
-                  <Search className="h-5 w-5 text-secondary/30" />
-                </div>
-                <Input 
-                  placeholder="Suivre un colis (ex: KOL-XXXX)" 
-                  className="border-none bg-transparent focus-visible:ring-0 text-base font-bold placeholder:text-gray-300 p-0 h-12"
-                  value={trackingCode}
-                  onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === 'Enter' && handleTrack()}
-                  data-testid="input-tracking"
-                />
-                <Button 
-                  onClick={handleTrack}
-                  className="bg-primary text-secondary hover:bg-primary/90 px-6 h-10 rounded-full font-black uppercase tracking-widest text-[10px]"
-                  data-testid="button-track"
-                >
-                  Suivre
-                </Button>
+          <div className="relative group max-w-md">
+            <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full group-hover:bg-primary/30 transition-all duration-500" />
+            <div className="relative flex items-center bg-white p-2 rounded-full shadow-2xl border-2 border-primary/10">
+              <div className="pl-4 pr-2">
+                <Search className="h-5 w-5 text-secondary/30" />
               </div>
+              <Input 
+                placeholder="Code de suivi (ex: 1234)" 
+                className="border-none bg-transparent focus-visible:ring-0 text-lg font-black placeholder:text-gray-300 p-0 h-12"
+                value={trackingCode}
+                onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === 'Enter' && handleTrack()}
+                data-testid="input-tracking"
+              />
+              <Button 
+                onClick={handleTrack}
+                className="bg-secondary text-white hover:bg-black px-8 h-12 rounded-full font-black uppercase tracking-widest text-xs"
+                data-testid="button-track"
+              >
+                Suivre
+              </Button>
             </div>
+          </div>
+        </div>
+
+        <div className="relative">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-[3rem] overflow-hidden"
+          >
+            <img src={heroCourier} alt="Livreur Hero" className="w-full h-auto object-contain" />
           </motion.div>
         </div>
       </section>
