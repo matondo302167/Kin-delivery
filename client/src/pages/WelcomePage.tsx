@@ -74,7 +74,14 @@ export default function WelcomePage() {
         role: role!,
       });
       
-      setProfile(profile);
+      setProfile({
+        id: profile.id,
+        name: profile.name,
+        phone: profile.phone,
+        email: profile.email || undefined,
+        role: profile.role as UserRole,
+        avatar: profile.avatar || undefined,
+      });
       setLocation(redirectTo);
     } catch (error) {
       console.error('Failed to create profile:', error);
@@ -214,7 +221,7 @@ export default function WelcomePage() {
             </div>
 
             {/* Option: Vendre en ligne */}
-            <div className="bg-[#F6F6F6] p-12 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 group cursor-pointer hover:shadow-xl transition-all" onClick={() => { setRole('seller'); setLocation('/'); }}>
+            <div className="bg-[#F6F6F6] p-12 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 group cursor-pointer hover:shadow-xl transition-all" onClick={() => handleRoleSelection('seller', '/')}>
               <div className="flex-1 space-y-4">
                 <h4 className="text-3xl font-black tracking-tighter text-secondary">Vendre en ligne</h4>
                 <p className="text-sm text-gray-500 font-medium">Boostez votre business avec notre logistique express.</p>
