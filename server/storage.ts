@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { db } from "./db";
 import { pool } from "./db";
 import {
@@ -40,7 +41,7 @@ export class DatabaseStorage implements IStorage {
     try {
       await client.query('BEGIN');
       
-      const userId = profileData.id || require('crypto').randomUUID();
+      const userId = profileData.id || crypto.randomUUID();
       
       await client.query(
         `INSERT INTO auth.users (id, instance_id, aud, role, email, phone, encrypted_password, email_confirmed_at, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
