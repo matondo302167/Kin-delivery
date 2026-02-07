@@ -49,3 +49,8 @@ integrations = ["twilio:1.0.0", "javascript_object_storage:2.0.0"]
 
 [objectStorage]
 defaultBucketID = "replit-objstore-c29e1aca-0ec2-4db7-8f95-6e48810a196f"
+
+[userenv]
+
+[userenv.shared]
+SUPABASE_DATABASE_URL = "postgresql://postgres.bxmcxhsvgtqfidbradqb:LebaNzale%40302167@aws-1-eu-central-1.pooler.supabase.com:6543/postgres"
