@@ -163,7 +163,7 @@ export default function WelcomePage() {
               </p>
               <div className="flex items-center gap-6 pt-4">
                 <Button 
-                  onClick={() => setLocation('/login')}
+                  onClick={() => setLocation('/order')}
                   className="bg-black text-white hover:bg-gray-800 px-10 h-14 rounded-xl font-black uppercase tracking-widest text-xs"
                   data-testid="button-send-parcel"
                 >

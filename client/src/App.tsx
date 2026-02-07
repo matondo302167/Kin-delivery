@@ -37,6 +37,7 @@ function Router() {
       <Route path="/product" component={ProductPage} />
       <Route path="/company" component={CompanyPage} />
       <Route path="/tracking" component={TrackingPage} />
+      <Route path="/order" component={OrderPage} />
       
       {/* Routes Protected by Role - For Prototype we assume if role is null, redirect to welcome */}
       <Route path="*">

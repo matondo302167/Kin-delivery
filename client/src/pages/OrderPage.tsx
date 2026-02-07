@@ -4,18 +4,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
-import { createOrder } from "@/lib/api";
+import { createOrder, getProfileByPhone } from "@/lib/api";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Phone, User, PackagePlus, Clock, Wallet, Banknote, Navigation, ArrowRight, Package } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MapPin, Phone, User, PackagePlus, Clock, Wallet, Banknote, Navigation, ArrowRight, Package, Loader2, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Popup } from 'react-leaflet';
 import L, { LeafletMouseEvent } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import kolisaLogo from "@/assets/kolisa-logo.png";
 
 // Fix Leaflet marker icons
 // @ts-ignore
@@ -71,7 +73,7 @@ function LocationMarker({ activeField, onLocationSelect, userLocation }: { activ
 }
 
 export default function OrderPage() {
-  const { profile } = useStore();
+  const { profile, setProfile } = useStore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [, setLocation] = useLocation();
@@ -79,6 +81,10 @@ export default function OrderPage() {
   const [pickupCoords, setPickupCoords] = useState<{lat: number, lng: number} | null>(null);
   const [deliveryCoords, setDeliveryCoords] = useState<{lat: number, lng: number} | null>(null);
   const [userLocation, setUserLocation] = useState<L.LatLng | null>(null);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [loginPhone, setLoginPhone] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [pendingFormValues, setPendingFormValues] = useState<z.infer<typeof formSchema> | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -140,7 +146,7 @@ export default function OrderPage() {
     setActiveField(null); // Clear active field to hide yellow text
   };
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function submitOrder(values: z.infer<typeof formSchema>, sellerId?: string) {
     setIsSubmitting(true);
     try {
       const pickupCoord = pickupCoords || { lat: -4.325, lng: 15.3222 };
@@ -154,7 +160,7 @@ export default function OrderPage() {
         deliveryLng: deliveryCoord.lng.toString(),
         price: values.price.toString(),
         articlePrice: values.articlePrice.toString(),
-        sellerId: profile?.id,
+        sellerId: sellerId || profile?.id,
       });
       
       toast({
@@ -166,8 +172,9 @@ export default function OrderPage() {
       setPickupCoords(null);
       setDeliveryCoords(null);
       
-      // Redirect to packages list
-      setLocation("/seller-packages");
+      if (profile?.role === 'seller') {
+        setLocation("/seller-packages");
+      }
     } catch (error: any) {
       toast({
         title: "Erreur",
@@ -176,6 +183,56 @@ export default function OrderPage() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!profile || profile.role !== 'seller') {
+      setPendingFormValues(values);
+      setShowLoginDialog(true);
+      return;
+    }
+    await submitOrder(values);
+  }
+
+  async function handleLoginFromDialog() {
+    if (loginPhone.length < 9) {
+      toast({
+        title: "Numéro invalide",
+        description: "Veuillez entrer un numéro de téléphone valide",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsLoggingIn(true);
+    try {
+      const foundProfile = await getProfileByPhone(loginPhone);
+      setProfile({
+        id: foundProfile.id,
+        name: foundProfile.name,
+        phone: foundProfile.phone,
+        email: foundProfile.email || undefined,
+        role: foundProfile.role as 'seller' | 'courier' | 'customer',
+        avatar: foundProfile.avatar || undefined,
+      });
+      setShowLoginDialog(false);
+      setLoginPhone("");
+      toast({
+        title: "Connexion réussie",
+        description: `Bienvenue ${foundProfile.name}!`,
+      });
+      if (pendingFormValues) {
+        await submitOrder(pendingFormValues, foundProfile.id);
+        setPendingFormValues(null);
+      }
+    } catch (error) {
+      toast({
+        title: "Compte introuvable",
+        description: "Ce numéro n'est pas enregistré. Créez un compte d'abord.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoggingIn(false);
     }
   }
 
@@ -469,6 +526,69 @@ export default function OrderPage() {
           
           {/* Map Overlay Info - REMOVED per user request */}
       </div>
+
+      <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <DialogContent className="sm:max-w-md rounded-[2rem] p-0 overflow-hidden">
+          <div className="p-8 space-y-6">
+            <DialogHeader className="text-center space-y-4">
+              <div className="flex justify-center">
+                <img src={kolisaLogo} alt="KOLISA" className="h-12" />
+              </div>
+              <DialogTitle className="text-xl font-black text-secondary tracking-tight">
+                Identifiez-vous pour commander
+              </DialogTitle>
+              <p className="text-sm text-gray-500">
+                Entrez votre numéro de téléphone pour lancer votre commande
+              </p>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">Numéro de téléphone</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    type="tel"
+                    placeholder="0812345678"
+                    value={loginPhone}
+                    onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    className="pl-12 h-14 rounded-xl text-lg font-medium"
+                    data-testid="input-login-phone"
+                    onKeyDown={(e) => e.key === 'Enter' && handleLoginFromDialog()}
+                  />
+                </div>
+              </div>
+
+              <Button
+                onClick={handleLoginFromDialog}
+                disabled={isLoggingIn || loginPhone.length < 9}
+                className="w-full h-14 rounded-xl bg-secondary hover:bg-secondary/90 text-white font-bold text-base gap-2"
+                data-testid="button-dialog-login"
+              >
+                {isLoggingIn ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    Se connecter et commander
+                    <ArrowRight className="h-5 w-5" />
+                  </>
+                )}
+              </Button>
+
+              <div className="text-center pt-2">
+                <p className="text-sm text-gray-500">Pas encore de compte?</p>
+                <button
+                  onClick={() => { setShowLoginDialog(false); setLocation('/register'); }}
+                  className="text-primary font-bold text-sm mt-1"
+                  data-testid="link-dialog-register"
+                >
+                  Créer un compte
+                </button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
