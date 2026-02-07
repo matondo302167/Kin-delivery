@@ -96,24 +96,6 @@ export default function WelcomePage() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 max-w-md">
-            <Button 
-              onClick={() => setLocation('/login')}
-              className="bg-secondary text-white hover:bg-black h-14 px-8 rounded-xl font-black uppercase tracking-widest text-xs flex-1"
-              data-testid="button-hero-login"
-            >
-              Se connecter <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-            <Button 
-              onClick={() => setLocation('/register')}
-              variant="outline"
-              className="h-14 px-8 rounded-xl font-black uppercase tracking-widest text-xs border-2"
-              data-testid="button-hero-register"
-            >
-              S'inscrire
-            </Button>
-          </div>
-
           <div className="relative group max-w-md">
             <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full group-hover:bg-primary/30 transition-all duration-500" />
             <div className="relative flex items-center bg-white p-2 rounded-full shadow-2xl border-2 border-primary/10">
