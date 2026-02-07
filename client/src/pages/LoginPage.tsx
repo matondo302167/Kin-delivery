@@ -39,21 +39,20 @@ export default function LoginPage() {
       
       setProfile({
         id: profile.id,
-        name: profile.name,
-        phone: profile.phone,
-        email: profile.email || undefined,
+        name: profile.fullName || "",
+        phone: profile.phoneNumber,
         role: profile.role as 'seller' | 'courier' | 'customer',
-        avatar: profile.avatar || undefined,
+        avatar: profile.avatarUrl || undefined,
       });
 
       toast({
         title: "Connexion réussie",
-        description: `Bienvenue ${profile.name}!`,
+        description: `Bienvenue ${profile.fullName}!`,
       });
 
-      if (profile.role === 'courier') {
+      if (profile.role === 'driver') {
         setLocation('/dashboard');
-      } else if (profile.role === 'seller') {
+      } else if (profile.role === 'temp_seller' || profile.role === 'pro_seller') {
         setLocation('/');
       } else {
         setLocation('/tracking');

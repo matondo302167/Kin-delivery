@@ -1,38 +1,45 @@
 import { db } from "./db";
-import { profiles, orders, transactions, type Profile, type InsertProfile, type Order, type InsertOrder, type Transaction, type InsertTransaction } from "@shared/schema";
+import {
+  profiles, deliveries, transactions, driverDetails, sellerDetails, driverLocations,
+  type Profile, type InsertProfile,
+  type Delivery, type InsertDelivery,
+  type Transaction, type InsertTransaction,
+  type DriverDetails, type InsertDriverDetails,
+  type SellerDetails, type InsertSellerDetails,
+  type DriverLocation,
+} from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  // Profiles
   getProfile(id: string): Promise<Profile | undefined>;
   getProfileByPhone(phone: string): Promise<Profile | undefined>;
   createProfile(profile: InsertProfile): Promise<Profile>;
-  updateProfileBalance(id: string, amount: number): Promise<Profile>;
-  
-  // Orders
-  getOrder(id: string): Promise<Order | undefined>;
-  getOrderByTrackingToken(token: string): Promise<Order | undefined>;
-  listOrders(filters?: { status?: string; sellerId?: string; courierId?: string }): Promise<Order[]>;
-  createOrder(order: InsertOrder & { pinCode: string; trackingToken: string }): Promise<Order>;
-  updateOrderStatus(id: string, status: string, updates?: Partial<Order>): Promise<Order>;
-  assignCourier(orderId: string, courierId: string): Promise<Order>;
-  updateOrderPhoto(orderId: string, photoUrl: string): Promise<Order>;
-  confirmCashCollection(orderId: string): Promise<Order>;
-  
-  // Transactions
+
+  getDelivery(id: string): Promise<Delivery | undefined>;
+  listDeliveries(filters?: { status?: string; sellerId?: string; driverId?: string }): Promise<Delivery[]>;
+  createDelivery(delivery: InsertDelivery & { otpCode: string }): Promise<Delivery>;
+  updateDeliveryStatus(id: string, status: string, updates?: Partial<Delivery>): Promise<Delivery>;
+  assignDriver(deliveryId: string, driverId: string): Promise<Delivery>;
+  updateDeliveryPhoto(deliveryId: string, photoUrl: string): Promise<Delivery>;
+
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
-  listTransactions(profileId: string): Promise<Transaction[]>;
+  listTransactions(userId: string): Promise<Transaction[]>;
+
+  getDriverDetails(profileId: string): Promise<DriverDetails | undefined>;
+  createDriverDetails(details: InsertDriverDetails): Promise<DriverDetails>;
+
+  getSellerDetails(profileId: string): Promise<SellerDetails | undefined>;
+  createSellerDetails(details: InsertSellerDetails): Promise<SellerDetails>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // Profiles
   async getProfile(id: string): Promise<Profile | undefined> {
     const result = await db.select().from(profiles).where(eq(profiles.id, id)).limit(1);
     return result[0];
   }
 
   async getProfileByPhone(phone: string): Promise<Profile | undefined> {
-    const result = await db.select().from(profiles).where(eq(profiles.phone, phone)).limit(1);
+    const result = await db.select().from(profiles).where(eq(profiles.phoneNumber, phone)).limit(1);
     return result[0];
   }
 
@@ -41,102 +48,89 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateProfileBalance(id: string, amount: number): Promise<Profile> {
-    const profile = await this.getProfile(id);
-    if (!profile) throw new Error("Profile not found");
-    
-    const newBalance = (parseFloat(profile.balance) + amount).toString();
-    const result = await db.update(profiles)
-      .set({ balance: newBalance })
-      .where(eq(profiles.id, id))
-      .returning();
+  async getDelivery(id: string): Promise<Delivery | undefined> {
+    const result = await db.select().from(deliveries).where(eq(deliveries.id, id)).limit(1);
     return result[0];
   }
 
-  // Orders
-  async getOrder(id: string): Promise<Order | undefined> {
-    const result = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
-    return result[0];
-  }
+  async listDeliveries(filters?: { status?: string; sellerId?: string; driverId?: string }): Promise<Delivery[]> {
+    let query = db.select().from(deliveries);
 
-  async getOrderByTrackingToken(token: string): Promise<Order | undefined> {
-    const result = await db.select().from(orders).where(eq(orders.trackingToken, token)).limit(1);
-    return result[0];
-  }
-
-  async listOrders(filters?: { status?: string; sellerId?: string; courierId?: string }): Promise<Order[]> {
-    let query = db.select().from(orders);
-    
     if (filters?.status) {
-      query = query.where(eq(orders.status, filters.status)) as any;
+      query = query.where(eq(deliveries.status, filters.status)) as any;
     }
     if (filters?.sellerId) {
-      query = query.where(eq(orders.sellerId, filters.sellerId)) as any;
+      query = query.where(eq(deliveries.sellerId, filters.sellerId)) as any;
     }
-    if (filters?.courierId) {
-      query = query.where(eq(orders.courierId, filters.courierId)) as any;
+    if (filters?.driverId) {
+      query = query.where(eq(deliveries.driverId, filters.driverId)) as any;
     }
-    
-    return query.orderBy(desc(orders.createdAt));
+
+    return query.orderBy(desc(deliveries.createdAt));
   }
 
-  async createOrder(orderData: InsertOrder & { pinCode: string; trackingToken: string }): Promise<Order> {
-    const result = await db.insert(orders).values(orderData).returning();
+  async createDelivery(deliveryData: InsertDelivery & { otpCode: string }): Promise<Delivery> {
+    const result = await db.insert(deliveries).values(deliveryData).returning();
     return result[0];
   }
 
-  async updateOrderStatus(id: string, status: string, updates?: Partial<Order>): Promise<Order> {
-    const updateData: any = { status, updatedAt: new Date() };
-    
-    if (status === 'delivered') {
-      updateData.deliveredAt = new Date();
-    }
-    
+  async updateDeliveryStatus(id: string, status: string, updates?: Partial<Delivery>): Promise<Delivery> {
+    const updateData: any = { status };
     if (updates) {
       Object.assign(updateData, updates);
     }
-    
-    const result = await db.update(orders)
+    const result = await db.update(deliveries)
       .set(updateData)
-      .where(eq(orders.id, id))
+      .where(eq(deliveries.id, id))
       .returning();
     return result[0];
   }
 
-  async assignCourier(orderId: string, courierId: string): Promise<Order> {
-    const result = await db.update(orders)
-      .set({ courierId, status: 'delivering', updatedAt: new Date() })
-      .where(eq(orders.id, orderId))
+  async assignDriver(deliveryId: string, driverId: string): Promise<Delivery> {
+    const result = await db.update(deliveries)
+      .set({ driverId, status: 'in_transit' })
+      .where(eq(deliveries.id, deliveryId))
       .returning();
     return result[0];
   }
 
-  async updateOrderPhoto(orderId: string, photoUrl: string): Promise<Order> {
-    const result = await db.update(orders)
-      .set({ photoProofUrl: photoUrl, updatedAt: new Date() })
-      .where(eq(orders.id, orderId))
+  async updateDeliveryPhoto(deliveryId: string, photoUrl: string): Promise<Delivery> {
+    const result = await db.update(deliveries)
+      .set({ proofImageUrl: photoUrl })
+      .where(eq(deliveries.id, deliveryId))
       .returning();
     return result[0];
   }
 
-  async confirmCashCollection(orderId: string): Promise<Order> {
-    const result = await db.update(orders)
-      .set({ cashCollected: true, updatedAt: new Date() })
-      .where(eq(orders.id, orderId))
-      .returning();
-    return result[0];
-  }
-
-  // Transactions
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const result = await db.insert(transactions).values(transaction).returning();
     return result[0];
   }
 
-  async listTransactions(profileId: string): Promise<Transaction[]> {
+  async listTransactions(userId: string): Promise<Transaction[]> {
     return db.select().from(transactions)
-      .where(eq(transactions.profileId, profileId))
+      .where(eq(transactions.userId, userId))
       .orderBy(desc(transactions.createdAt));
+  }
+
+  async getDriverDetails(profileId: string): Promise<DriverDetails | undefined> {
+    const result = await db.select().from(driverDetails).where(eq(driverDetails.profileId, profileId)).limit(1);
+    return result[0];
+  }
+
+  async createDriverDetails(details: InsertDriverDetails): Promise<DriverDetails> {
+    const result = await db.insert(driverDetails).values(details).returning();
+    return result[0];
+  }
+
+  async getSellerDetails(profileId: string): Promise<SellerDetails | undefined> {
+    const result = await db.select().from(sellerDetails).where(eq(sellerDetails.profileId, profileId)).limit(1);
+    return result[0];
+  }
+
+  async createSellerDetails(details: InsertSellerDetails): Promise<SellerDetails> {
+    const result = await db.insert(sellerDetails).values(details).returning();
+    return result[0];
   }
 }
 

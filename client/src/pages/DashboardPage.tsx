@@ -8,45 +8,43 @@ import { useToast } from "@/hooks/use-toast";
 import courierHero from "@/assets/courier-illustration.png";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { listOrders, acceptOrder, confirmCashCollection, updateOrderPhoto, validateDelivery, uploadFile } from "@/lib/api";
-import type { Order } from "@shared/schema";
+import { listDeliveries, acceptDelivery, updateDeliveryPhoto, validateDelivery, uploadFile } from "@/lib/api";
+import type { Delivery } from "@shared/schema";
 
 export default function DashboardPage() {
   const { profile } = useStore();
   const { toast } = useToast();
-  const [pin, setPin] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [cashCollected, setCashCollected] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [photoUrl, setPhotoUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
-  const [myMissions, setMyMissions] = useState<Order[]>([]);
+  const [availableDeliveries, setAvailableDeliveries] = useState<Delivery[]>([]);
+  const [myMissions, setMyMissions] = useState<Delivery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadOrders = async () => {
+  const loadDeliveries = async () => {
     try {
       setIsLoading(true);
-      const [pending, delivering] = await Promise.all([
-        listOrders({ status: "pending" }),
-        listOrders({ courierId: profile?.id, status: "delivering" }),
+      const [pending, inTransit] = await Promise.all([
+        listDeliveries({ status: "pending" }),
+        listDeliveries({ driverId: profile?.id, status: "in_transit" }),
       ]);
-      setAvailableOrders(pending);
-      setMyMissions(delivering);
+      setAvailableDeliveries(pending);
+      setMyMissions(inTransit);
     } catch (error) {
-      console.error("Failed to load orders:", error);
+      console.error("Failed to load deliveries:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadOrders();
-    const interval = setInterval(loadOrders, 10000); // Refresh every 10s
+    loadDeliveries();
+    const interval = setInterval(loadDeliveries, 10000);
     return () => clearInterval(interval);
   }, [profile?.id]);
 
@@ -57,21 +55,21 @@ export default function DashboardPage() {
     }
     
     try {
-      await acceptOrder(id, profile.id);
+      await acceptDelivery(id, profile.id);
       toast({ title: "Mission acceptée", description: "En route pour le ramassage" });
-      await loadOrders();
+      await loadDeliveries();
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     }
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0] && selectedOrder) {
+    if (e.target.files && e.target.files[0] && selectedDelivery) {
       setIsUploading(true);
       try {
         const file = e.target.files[0];
         const { objectPath } = await uploadFile(file);
-        await updateOrderPhoto(selectedOrder.id, objectPath);
+        await updateDeliveryPhoto(selectedDelivery.id, objectPath);
         setPhotoUrl(objectPath);
         toast({ title: "Photo enregistrée", description: "Preuve de livraison ajoutée" });
       } catch (error: any) {
@@ -82,45 +80,27 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCashCollectionToggle = async () => {
-    if (selectedOrder && !cashCollected) {
-      try {
-        await confirmCashCollection(selectedOrder.id);
-        setCashCollected(true);
-        toast({ title: "Encaissement confirmé", description: "Argent collecté" });
-      } catch (error: any) {
-        toast({ title: "Erreur", description: error.message, variant: "destructive" });
-      }
-    }
-  };
-
   const handleDeliver = async () => {
-    if (!selectedOrder) return;
+    if (!selectedDelivery) return;
     
     if (!photoUrl) {
       toast({ title: "Photo requise", description: "Prenez une photo du colis", variant: "destructive" });
       return;
     }
     
-    if (selectedOrder.paymentMethod === 'cod' && !cashCollected) {
-      toast({ title: "Encaissement requis", description: "Confirmez la réception de l'argent", variant: "destructive" });
-      return;
-    }
-    
-    if (pin.length !== 4) {
-      toast({ title: "Code PIN invalide", description: "Le code doit contenir 4 chiffres", variant: "destructive" });
+    if (otp.length !== 6) {
+      toast({ title: "Code OTP invalide", description: "Le code doit contenir 6 chiffres", variant: "destructive" });
       return;
     }
     
     setIsValidating(true);
     try {
-      await validateDelivery(selectedOrder.id, pin, profile?.id);
-      setPin("");
-      setCashCollected(false);
+      await validateDelivery(selectedDelivery.id, otp, profile?.id);
+      setOtp("");
       setPhotoUrl("");
-      setSelectedOrder(null);
+      setSelectedDelivery(null);
       toast({ title: "Livraison validée", description: "Paiement crédité au vendeur" });
-      await loadOrders();
+      await loadDeliveries();
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } finally {
@@ -147,18 +127,18 @@ export default function DashboardPage() {
         ) : myMissions.length === 0 ? (
           <p className="text-center py-8 text-xs font-bold text-muted-foreground uppercase border-2 border-dashed border-slate-100 rounded-3xl">Aucune course active</p>
         ) : (
-          myMissions.map(order => (
-            <Card key={order.id} className="border-none shadow-xl bg-white rounded-[2rem] overflow-hidden">
+          myMissions.map(delivery => (
+            <Card key={delivery.id} className="border-none shadow-xl bg-white rounded-[2rem] overflow-hidden">
               <CardContent className="p-6 space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="text-lg font-black italic uppercase tracking-tight text-secondary">{order.recipientName}</h4>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">{order.deliveryAddress}</p>
+                    <h4 className="text-lg font-black italic uppercase tracking-tight text-secondary">{delivery.customerName}</h4>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">{delivery.deliveryAddress}</p>
                   </div>
                   <Badge className="bg-blue-500 text-white text-[9px] font-black uppercase">En route</Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1 rounded-xl border-slate-100 h-12" onClick={() => window.open(`tel:${order.recipientPhone}`)}>
+                  <Button variant="outline" className="flex-1 rounded-xl border-slate-100 h-12" onClick={() => window.open(`tel:${delivery.customerPhone}`)}>
                     <Phone className="mr-2 h-4 w-4" /> Appeler
                   </Button>
                   <Dialog>
@@ -166,9 +146,8 @@ export default function DashboardPage() {
                       <Button 
                         className="flex-1 rounded-xl bg-primary text-primary-foreground h-12 shadow-lg shadow-primary/20"
                         onClick={() => {
-                          setSelectedOrder(order);
-                          setCashCollected(!!order.cashCollected);
-                          setPhotoUrl(order.photoProofUrl || "");
+                          setSelectedDelivery(delivery);
+                          setPhotoUrl(delivery.proofImageUrl || "");
                         }}
                       >
                         <CheckCircle2 className="mr-2 h-4 w-4" /> Valider
@@ -180,7 +159,6 @@ export default function DashboardPage() {
                       </DialogHeader>
                       <div className="space-y-6 pt-4">
                         
-                        {/* Photo Proof */}
                         <div className="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
@@ -206,36 +184,16 @@ export default function DashboardPage() {
                           </Button>
                         </div>
 
-                        {/* Cash Collection (COD only) */}
-                        {selectedOrder?.paymentMethod === 'cod' && (
-                          <div className="bg-green-50 p-4 rounded-2xl border-2 border-dashed border-green-200">
-                            <div className="flex items-center gap-3">
-                              <Checkbox 
-                                id="cash" 
-                                checked={cashCollected}
-                                onCheckedChange={() => handleCashCollectionToggle()}
-                              />
-                              <Label htmlFor="cash" className="text-sm font-black uppercase cursor-pointer">
-                                <div className="flex items-center gap-2">
-                                  <DollarSign className="h-4 w-4 text-green-600" />
-                                  <span>Argent collecté ({parseFloat(selectedOrder.articlePrice || "0").toLocaleString()} FC)</span>
-                                </div>
-                              </Label>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* PIN Entry */}
                         <div className="bg-primary/10 p-4 rounded-2xl border-2 border-primary/20 border-dashed">
                           <KeyRound className="h-8 w-8 text-primary mx-auto mb-2" />
-                          <p className="text-[10px] font-black uppercase text-secondary text-center">Code PIN Client</p>
-                          <p className="text-[9px] font-bold text-muted-foreground text-center mb-3">Entrez le code de 4 chiffres reçu par le client</p>
+                          <p className="text-[10px] font-black uppercase text-secondary text-center">Code OTP Client</p>
+                          <p className="text-[9px] font-bold text-muted-foreground text-center mb-3">Entrez le code de 6 chiffres reçu par le client</p>
                           <Input 
                             type="password" 
-                            maxLength={4} 
-                            placeholder="••••" 
-                            value={pin}
-                            onChange={(e) => setPin(e.target.value)}
+                            maxLength={6} 
+                            placeholder="••••••" 
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
                             className="text-center text-4xl h-20 font-black tracking-[0.5em] border-none bg-slate-100 rounded-2xl"
                           />
                         </div>
@@ -260,8 +218,8 @@ export default function DashboardPage() {
       <div className="space-y-4 pt-4">
         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground px-2">Courses Disponibles</h3>
         <div className="grid gap-4">
-          {availableOrders.map(order => (
-            <Card key={order.id} className="border-none shadow-lg bg-white rounded-[2rem] overflow-hidden group hover:scale-[1.02] transition-transform">
+          {availableDeliveries.map(delivery => (
+            <Card key={delivery.id} className="border-none shadow-lg bg-white rounded-[2rem] overflow-hidden group hover:scale-[1.02] transition-transform">
               <CardContent className="p-6 space-y-4">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -270,17 +228,17 @@ export default function DashboardPage() {
                     </div>
                     <span className="text-[10px] font-black uppercase text-muted-foreground">Il y a 2 min</span>
                   </div>
-                  <span className="text-lg font-black text-secondary">{parseFloat(order.price).toLocaleString()} FC</span>
+                  <span className="text-lg font-black text-secondary">{parseFloat(delivery.deliveryFee || "0").toLocaleString()} FC</span>
                 </div>
                 <div>
                   <h4 className="font-black italic text-secondary uppercase tracking-tighter text-xl leading-none mb-1">
-                    {order.deliveryAddress.split(',')[1] || "Kinshasa"}
+                    {delivery.deliveryAddress.split(',')[1] || "Kinshasa"}
                   </h4>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">{order.deliveryAddress}</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">{delivery.deliveryAddress}</p>
                 </div>
                 <Button 
                   className="w-full h-12 bg-secondary text-white font-black uppercase tracking-widest rounded-xl shadow-xl shadow-secondary/10" 
-                  onClick={() => handleAccept(order.id)}
+                  onClick={() => handleAccept(delivery.id)}
                 >
                   Accepter la mission
                 </Button>

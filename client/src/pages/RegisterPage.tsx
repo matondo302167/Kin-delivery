@@ -7,14 +7,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Check, Truck, ShoppingBag } from "lucide-react";
+import { createProfile } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
-  const { setRole, updateProfile } = useStore();
-  const [role, setSelectedRole] = useState<'seller' | 'courier'>('seller');
+  const { setRole, setProfile } = useStore();
+  const { toast } = useToast();
+  const [role, setSelectedRole] = useState<'temp_seller' | 'driver'>('temp_seller');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phone: "",
     businessName: "",
     address: "",
@@ -26,25 +30,47 @@ export default function RegisterPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRole(role);
-    updateProfile({
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-    });
-    // Redirect based on role
-    if (role === 'seller') {
-      setLocation('/');
-    } else {
-      setLocation('/dashboard');
+    setIsSubmitting(true);
+    try {
+      const newProfile = await createProfile({
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36),
+        phoneNumber: formData.phone,
+        fullName: formData.name,
+        role: role,
+      });
+
+      setProfile({
+        id: newProfile.id,
+        name: newProfile.fullName || "",
+        phone: newProfile.phoneNumber,
+        role: role as any,
+      });
+
+      toast({
+        title: "Compte créé",
+        description: `Bienvenue ${formData.name}!`,
+      });
+
+      if (role === 'temp_seller') {
+        setLocation('/');
+      } else {
+        setLocation('/dashboard');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de créer le compte",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col md:flex-row">
-      {/* Left Side - Image/Info */}
       <div className="hidden md:flex md:w-1/2 bg-secondary text-white p-12 flex-col justify-between">
         <div>
           <h1 className="text-4xl font-black tracking-tighter mb-4">KOLISA</h1>
@@ -73,7 +99,6 @@ export default function RegisterPage() {
         <p className="text-[10px] uppercase tracking-widest text-white/40">© 2026 KOLISA RDC</p>
       </div>
 
-      {/* Right Side - Form */}
       <div className="flex-1 p-8 md:p-20 overflow-y-auto">
         <div className="max-w-md mx-auto space-y-8">
           <div>
@@ -83,17 +108,17 @@ export default function RegisterPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div 
-              onClick={() => setSelectedRole('seller')}
-              className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${role === 'seller' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}
+              onClick={() => setSelectedRole('temp_seller')}
+              className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${role === 'temp_seller' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}
             >
-              <ShoppingBag className={`h-8 w-8 mb-2 ${role === 'seller' ? 'text-primary' : 'text-gray-400'}`} />
+              <ShoppingBag className={`h-8 w-8 mb-2 ${role === 'temp_seller' ? 'text-primary' : 'text-gray-400'}`} />
               <p className="font-bold text-sm">Vendeur</p>
             </div>
             <div 
-              onClick={() => setSelectedRole('courier')}
-              className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${role === 'courier' ? 'border-secondary bg-secondary/5' : 'border-gray-100 hover:border-gray-200'}`}
+              onClick={() => setSelectedRole('driver')}
+              className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${role === 'driver' ? 'border-secondary bg-secondary/5' : 'border-gray-100 hover:border-gray-200'}`}
             >
-              <Truck className={`h-8 w-8 mb-2 ${role === 'courier' ? 'text-secondary' : 'text-gray-400'}`} />
+              <Truck className={`h-8 w-8 mb-2 ${role === 'driver' ? 'text-secondary' : 'text-gray-400'}`} />
               <p className="font-bold text-sm">Livreur</p>
             </div>
           </div>
@@ -104,18 +129,12 @@ export default function RegisterPage() {
               <Input id="name" name="name" required placeholder="Votre nom" value={formData.name} onChange={handleChange} className="h-12 rounded-xl" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Téléphone</Label>
-                <Input id="phone" name="phone" required placeholder="08..." value={formData.phone} onChange={handleChange} className="h-12 rounded-xl" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" required placeholder="email@exemple.com" value={formData.email} onChange={handleChange} className="h-12 rounded-xl" />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Téléphone</Label>
+              <Input id="phone" name="phone" required placeholder="08..." value={formData.phone} onChange={handleChange} className="h-12 rounded-xl" />
             </div>
 
-            {role === 'seller' ? (
+            {role === 'temp_seller' ? (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="businessName">Nom du Business (Optionnel)</Label>
@@ -148,8 +167,8 @@ export default function RegisterPage() {
               </>
             )}
 
-            <Button type="submit" className="w-full h-14 bg-secondary text-white font-bold rounded-xl text-lg mt-8">
-              S'inscrire
+            <Button type="submit" disabled={isSubmitting} className="w-full h-14 bg-secondary text-white font-bold rounded-xl text-lg mt-8">
+              {isSubmitting ? "Création..." : "S'inscrire"}
             </Button>
           </form>
           

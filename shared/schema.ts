@@ -1,103 +1,108 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, timestamp, boolean, doublePrecision, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User profiles (sellers, couriers, clients)
 export const profiles = pgTable("profiles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  phone: text("phone").notNull().unique(),
-  email: text("email"),
-  role: text("role").notNull(), // 'seller', 'courier', 'client'
-  balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"), // Seller balance in FC
-  avatar: text("avatar"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  id: uuid("id").primaryKey(),
+  phoneNumber: text("phone_number").notNull(),
+  fullName: text("full_name"),
+  role: text("role"),
+  avatarUrl: text("avatar_url"),
+  isVerified: boolean("is_verified"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
-// Orders/Deliveries
-export const orders = pgTable("orders", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
-  // Seller & Courier
-  sellerId: varchar("seller_id").references(() => profiles.id),
-  courierId: varchar("courier_id").references(() => profiles.id),
-  
-  // Recipient details
-  recipientName: text("recipient_name").notNull(),
-  recipientPhone: text("recipient_phone").notNull(),
-  
-  // Addresses
+export const deliveries = pgTable("deliveries", {
+  id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
+  sellerId: uuid("seller_id").notNull().references(() => profiles.id),
+  driverId: uuid("driver_id").references(() => profiles.id),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone").notNull(),
   pickupAddress: text("pickup_address").notNull(),
   deliveryAddress: text("delivery_address").notNull(),
-  pickupLat: decimal("pickup_lat", { precision: 10, scale: 7 }),
-  pickupLng: decimal("pickup_lng", { precision: 10, scale: 7 }),
-  deliveryLat: decimal("delivery_lat", { precision: 10, scale: 7 }),
-  deliveryLng: decimal("delivery_lng", { precision: 10, scale: 7 }),
-  
-  // Pricing
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(), // Delivery fee in FC
-  articlePrice: decimal("article_price", { precision: 10, scale: 2 }).notNull().default("0"), // Product price for COD
-  paymentMethod: text("payment_method").notNull(), // 'cod' or 'mobile_money'
-  
-  // Status & Security
-  status: text("status").notNull().default("pending"), // 'pending', 'delivering', 'delivered'
-  pinCode: text("pin_code").notNull(), // 4-digit PIN for validation
-  photoProofUrl: text("photo_proof_url"), // Supabase Storage URL
-  cashCollected: boolean("cash_collected").notNull().default(false), // COD confirmation
-  
-  // Tracking
-  trackingToken: text("tracking_token").notNull().unique(),
-  
-  // Additional
-  note: text("note"),
-  
-  // Timestamps
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  deliveredAt: timestamp("delivered_at"),
+  articlePrice: decimal("article_price", { precision: 10, scale: 2 }).default("0.00"),
+  deliveryFee: decimal("delivery_fee", { precision: 10, scale: 2 }).default("0.00"),
+  status: text("status").default("pending"),
+  otpCode: varchar("otp_code", { length: 6 }),
+  proofImageUrl: text("proof_image_url"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-// Transactions (for audit & balance tracking)
+export const driverDetails = pgTable("driver_details", {
+  profileId: uuid("profile_id").primaryKey().references(() => profiles.id),
+  vehicleType: text("vehicle_type").notNull(),
+  vehiclePlate: text("vehicle_plate"),
+  vehicleColor: text("vehicle_color"),
+  identityCardUrl: text("identity_card_url"),
+  isActive: boolean("is_active").default(true),
+});
+
+export const driverLocations = pgTable("driver_locations", {
+  driverId: uuid("driver_id").primaryKey().references(() => profiles.id),
+  latitude: doublePrecision("latitude").notNull(),
+  longitude: doublePrecision("longitude").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const sellerDetails = pgTable("seller_details", {
+  profileId: uuid("profile_id").primaryKey().references(() => profiles.id),
+  shopName: text("shop_name").notNull(),
+  businessAddress: text("business_address"),
+  category: text("category"),
+  totalSalesCount: integer("total_sales_count").default(0),
+});
+
 export const transactions = pgTable("transactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  profileId: varchar("profile_id").notNull().references(() => profiles.id),
-  orderId: varchar("order_id").references(() => orders.id),
+  id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
+  userId: uuid("user_id").notNull().references(() => profiles.id),
+  deliveryId: uuid("delivery_id").references(() => deliveries.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  type: text("type").notNull(), // 'credit', 'debit', 'withdrawal'
+  currency: varchar("currency", { length: 3 }).default("CDF"),
+  type: text("type").notNull(),
+  status: text("status").default("completed"),
+  paymentReference: text("payment_reference"),
   description: text("description"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-// Insert schemas
 export const insertProfileSchema = createInsertSchema(profiles).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertOrderSchema = createInsertSchema(orders).omit({
-  id: true,
   createdAt: true,
   updatedAt: true,
-  deliveredAt: true,
-  trackingToken: true,
-  pinCode: true,
-  cashCollected: true,
-  photoProofUrl: true,
+});
+
+export const insertDeliverySchema = createInsertSchema(deliveries).omit({
+  id: true,
+  createdAt: true,
   status: true,
+  otpCode: true,
+  proofImageUrl: true,
+  driverId: true,
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
   createdAt: true,
+  status: true,
 });
 
-// Types
+export const insertDriverDetailsSchema = createInsertSchema(driverDetails);
+export const insertSellerDetailsSchema = createInsertSchema(sellerDetails);
+
 export type Profile = typeof profiles.$inferSelect;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
 
-export type Order = typeof orders.$inferSelect;
-export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type Delivery = typeof deliveries.$inferSelect;
+export type InsertDelivery = z.infer<typeof insertDeliverySchema>;
 
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+
+export type DriverDetails = typeof driverDetails.$inferSelect;
+export type InsertDriverDetails = z.infer<typeof insertDriverDetailsSchema>;
+
+export type SellerDetails = typeof sellerDetails.$inferSelect;
+export type InsertSellerDetails = z.infer<typeof insertSellerDetailsSchema>;
+
+export type DriverLocation = typeof driverLocations.$inferSelect;

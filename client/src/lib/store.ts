@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type UserRole = 'seller' | 'courier' | 'customer' | null;
+export type UserRole = 'seller' | 'courier' | 'customer' | 'temp_seller' | 'pro_seller' | 'driver' | 'admin' | null;
 
 export interface UserProfile {
   id?: string;

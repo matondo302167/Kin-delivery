@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { getOrderByToken } from "@/lib/api";
-import type { Order } from "@shared/schema";
+import { getDelivery } from "@/lib/api";
+import type { Delivery } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, MapPin, Truck, CheckCircle2, Clock, Package, Banknote, Wallet, Phone, ShieldCheck, ArrowLeft } from "lucide-react";
@@ -10,96 +10,47 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import customerHero from "@/assets/african-delivery-illustration.png";
 import { cn } from "@/lib/utils";
-import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// Fix icons for tracking map
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-const courierIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
 
 export default function TrackingPage() {
   const [, setLocation] = useLocation();
-  const [token, setToken] = useState("");
-  const [foundOrder, setFoundOrder] = useState<Order | null>(null);
-  const [courierPos, setCourierPos] = useState<[number, number] | null>(null);
+  const [searchId, setSearchId] = useState("");
+  const [foundDelivery, setFoundDelivery] = useState<Delivery | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Get token from URL search params
     const params = new URLSearchParams(window.location.search);
-    const t = params.get("token");
-    if (t) {
-      setToken(t);
-      handleSearch(t);
+    const id = params.get("id");
+    if (id) {
+      setSearchId(id);
+      handleSearch(id);
     }
   }, []);
 
-  const handleSearch = async (searchToken?: string) => {
-    const tokenToSearch = searchToken || token;
-    if (!tokenToSearch) return;
+  const handleSearch = async (id?: string) => {
+    const idToSearch = id || searchId;
+    if (!idToSearch) return;
     
     setIsSearching(true);
     setError("");
     try {
-      const order = await getOrderByToken(tokenToSearch);
-      setFoundOrder(order);
+      const delivery = await getDelivery(idToSearch);
+      setFoundDelivery(delivery);
     } catch (err) {
-      setError("Colis introuvable. Vérifiez le code.");
-      setFoundOrder(null);
+      setError("Livraison introuvable. Vérifiez l'identifiant.");
+      setFoundDelivery(null);
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Simulate courier movement if delivering
-  useEffect(() => {
-    if (foundOrder?.status === 'delivering' && foundOrder.deliveryLat && foundOrder.deliveryLng) {
-      const targetLat = parseFloat(foundOrder.deliveryLat);
-      const targetLng = parseFloat(foundOrder.deliveryLng);
-      const startPos: [number, number] = [targetLat + 0.01, targetLng + 0.01];
-      setCourierPos(startPos);
-      
-      const interval = setInterval(() => {
-        setCourierPos(prev => {
-          if (!prev) return startPos;
-          return [
-            prev[0] + (targetLat - prev[0]) * 0.1,
-            prev[1] + (targetLng - prev[1]) * 0.1
-          ];
-        });
-      }, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [foundOrder]);
-
-  const performSearch = () => {
-    if (token) {
-      handleSearch(token);
-      // Update URL without reloading to reflect the search
-      if (token !== new URLSearchParams(window.location.search).get("token")) {
-        window.history.pushState({}, '', `/tracking?token=${token}`);
-      }
-    }
-  };
-
   const steps = [
     { status: "pending" as const, label: "Préparation", icon: Clock },
-    { status: "delivering" as const, label: "En route", icon: Truck },
+    { status: "in_transit" as const, label: "En route", icon: Truck },
     { status: "delivered" as const, label: "Livré", icon: CheckCircle2 },
   ];
+
+  const statusOrder = ['pending', 'picked_up', 'in_transit', 'delivered'];
 
   return (
     <div className="min-h-screen bg-white font-sans">
@@ -115,9 +66,9 @@ export default function TrackingPage() {
           <div className="relative flex-1">
             <Search className="absolute left-4 top-3.5 h-4 w-4 text-secondary/30" />
             <Input 
-              placeholder="Code de suivi (ex: TRK-...)" 
-              value={token}
-              onChange={(e) => setToken(e.target.value.toUpperCase())}
+              placeholder="ID de livraison" 
+              value={searchId}
+              onChange={(e) => setSearchId(e.target.value)}
               className="pl-12 h-13 bg-white border-2 border-gray-100 rounded-2xl shadow-sm font-bold focus-visible:ring-primary"
             />
           </div>
@@ -127,63 +78,33 @@ export default function TrackingPage() {
         </div>
 
         <AnimatePresence mode="wait">
-          {foundOrder ? (
+          {foundDelivery ? (
             <motion.div
-              key={foundOrder.id}
+              key={foundDelivery.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               className="space-y-8"
             >
-              {/* Status Header */}
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                  <div>
-                    <p className="text-sm text-gray-500 font-medium">Colis #{foundOrder.trackingToken}</p>
+                    <p className="text-sm text-gray-500 font-medium">Livraison #{foundDelivery.id.substring(0, 8)}</p>
                     <h2 className="text-3xl font-black text-secondary">
-                      {foundOrder.status === 'delivered' ? 'Livré avec succès' : 
-                       foundOrder.status === 'delivering' ? 'En cours d\'acheminement' : 'En préparation'}
+                      {foundDelivery.status === 'delivered' ? 'Livré avec succès' : 
+                       foundDelivery.status === 'in_transit' ? "En cours d'acheminement" : 
+                       foundDelivery.status === 'picked_up' ? 'Colis ramassé' : 'En préparation'}
                     </h2>
                  </div>
                  <Badge className={cn(
                     "px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest shadow-lg",
-                    foundOrder.status === 'delivered' ? "bg-green-500 text-white" : 
-                    foundOrder.status === 'delivering' ? "bg-blue-500 text-white" : "bg-amber-500 text-white"
+                    foundDelivery.status === 'delivered' ? "bg-green-500 text-white" : 
+                    foundDelivery.status === 'in_transit' ? "bg-blue-500 text-white" : "bg-amber-500 text-white"
                   )}>
-                    {foundOrder.status === 'delivered' ? 'Livré' : foundOrder.status === 'delivering' ? 'En route' : 'En attente'}
+                    {foundDelivery.status === 'delivered' ? 'Livré' : foundDelivery.status === 'in_transit' ? 'En route' : 'En attente'}
                   </Badge>
               </div>
 
-              {/* Live Map Tracking */}
-              {foundOrder.deliveryLat && foundOrder.deliveryLng && (
-                <Card className="rounded-[2.5rem] overflow-hidden h-96 shadow-2xl border-4 border-white relative z-0">
-                  <MapContainer 
-                    center={[parseFloat(foundOrder.deliveryLat), parseFloat(foundOrder.deliveryLng)]} 
-                    zoom={14} 
-                    className="h-full w-full"
-                  >
-                    <TileLayer 
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                      url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" 
-                    />
-                    <Marker position={[parseFloat(foundOrder.deliveryLat), parseFloat(foundOrder.deliveryLng)]} />
-                    {courierPos && (
-                      <>
-                        <Marker position={courierPos} icon={courierIcon} />
-                        <Polyline positions={[courierPos, [parseFloat(foundOrder.deliveryLat), parseFloat(foundOrder.deliveryLng)]]} color="#facc15" dashArray="10, 10" />
-                      </>
-                    )}
-                  </MapContainer>
-                  {foundOrder.status === 'delivering' && (
-                    <div className="absolute top-4 left-4 z-[400] bg-primary text-secondary px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg animate-pulse flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-secondary animate-ping" />
-                      Livreur en mouvement
-                    </div>
-                  )}
-                </Card>
-              )}
-
               <div className="grid md:grid-cols-2 gap-8">
-                {/* Steps */}
                 <Card className="border-none shadow-xl bg-white rounded-[2.5rem] overflow-hidden">
                    <CardContent className="p-8">
                       <div className="relative">
@@ -191,7 +112,9 @@ export default function TrackingPage() {
                         <div className="space-y-8">
                           {steps.map((step, idx) => {
                             const Icon = step.icon;
-                            const isCompleted = steps.findIndex(s => s.status === foundOrder.status) >= idx;
+                            const currentIdx = statusOrder.indexOf(foundDelivery.status || 'pending');
+                            const stepIdx = statusOrder.indexOf(step.status);
+                            const isCompleted = currentIdx >= stepIdx;
                             return (
                               <div key={step.status} className="relative flex items-center gap-6">
                                 <div className={cn(
@@ -205,9 +128,6 @@ export default function TrackingPage() {
                                     "text-sm font-black uppercase tracking-tight",
                                     isCompleted ? "text-secondary" : "text-slate-300"
                                   )}>{step.label}</p>
-                                  {isCompleted && step.status === foundOrder.status && (
-                                    <p className="text-[10px] font-bold text-muted-foreground italic">Mise à jour: Il y a 5 min</p>
-                                  )}
                                 </div>
                               </div>
                             );
@@ -217,39 +137,46 @@ export default function TrackingPage() {
                    </CardContent>
                 </Card>
 
-                {/* Details */}
                 <div className="space-y-6">
-                  {foundOrder.status !== 'pending' && (
-                    <Card className="border-none shadow-xl bg-secondary text-white rounded-[2rem] overflow-hidden">
-                      <CardContent className="p-6 flex items-center gap-4">
-                        <div className="h-16 w-16 rounded-2xl bg-white/10 flex items-center justify-center overflow-hidden border border-white/20">
-                          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Courier1" alt="Livreur" className="w-full h-full object-cover" />
+                  <Card className="border-none shadow-xl bg-white rounded-[2rem] overflow-hidden">
+                    <CardContent className="p-6 space-y-4">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Destinataire</p>
+                        <h3 className="text-lg font-black text-secondary">{foundDelivery.customerName}</h3>
+                        <p className="text-sm text-gray-500">{foundDelivery.customerPhone}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Adresse de livraison</p>
+                        <p className="text-sm font-medium text-gray-700">{foundDelivery.deliveryAddress}</p>
+                      </div>
+                      <div className="flex justify-between pt-3 border-t border-gray-100">
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-muted-foreground">Frais livraison</p>
+                          <p className="text-lg font-black text-secondary">{parseFloat(foundDelivery.deliveryFee || "0").toLocaleString()} FC</p>
                         </div>
-                        <div className="flex-1">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Votre Livreur</p>
-                          <h3 className="text-lg font-black italic tracking-tight uppercase">Jean-Claude L.</h3>
-                          <p className="text-[10px] font-bold text-primary italic">Plaque: KIN 4482 AB</p>
-                        </div>
-                        <Button size="icon" className="rounded-xl bg-white text-secondary hover:bg-white/90">
-                          <Phone className="h-5 w-5" />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )}
+                        {parseFloat(foundDelivery.articlePrice || "0") > 0 && (
+                          <div>
+                            <p className="text-[10px] font-black uppercase text-muted-foreground">Prix article</p>
+                            <p className="text-lg font-black text-secondary">{parseFloat(foundDelivery.articlePrice || "0").toLocaleString()} FC</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                  {foundOrder.status === 'delivering' && (
+                  {foundDelivery.status === 'in_transit' && (
                     <div className="p-6 bg-white border-2 border-primary/20 rounded-3xl flex items-center gap-4 border-dashed shadow-sm">
                       <ShieldCheck className="h-8 w-8 text-primary" />
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-secondary">Code de Validation</p>
-                        <p className="text-xs font-bold text-gray-500">Préparez le code PIN reçu par SMS.</p>
+                        <p className="text-xs font-bold text-gray-500">Préparez le code OTP reçu par SMS.</p>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
             </motion.div>
-          ) : token && (
+          ) : searchId && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -259,8 +186,8 @@ export default function TrackingPage() {
                 <Package className="h-12 w-12 text-gray-300" />
               </div>
               <div className="space-y-2">
-                <p className="text-2xl font-black text-secondary uppercase italic">Colis introuvable</p>
-                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Vérifiez votre code de suivi (ex: TRK-...)</p>
+                <p className="text-2xl font-black text-secondary uppercase italic">Livraison introuvable</p>
+                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Vérifiez l'identifiant de livraison</p>
               </div>
             </motion.div>
           )}

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
-import { createOrder, getProfileByPhone } from "@/lib/api";
+import { createDelivery, getProfileByPhone } from "@/lib/api";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,6 @@ import L, { LeafletMouseEvent } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import kolisaLogo from "@/assets/kolisa-logo.png";
 
-// Fix Leaflet marker icons
 // @ts-ignore
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -29,13 +28,12 @@ L.Icon.Default.mergeOptions({
 });
 
 const formSchema = z.object({
-  recipientName: z.string().min(2, "Nom requis"),
-  recipientPhone: z.string().min(9, "Numéro invalide"),
+  customerName: z.string().min(2, "Nom requis"),
+  customerPhone: z.string().min(9, "Numéro invalide"),
   pickupAddress: z.string().min(5, "Adresse de départ requise"),
   deliveryAddress: z.string().min(5, "Adresse d'arrivée requise"),
-  price: z.coerce.number().min(500, "Livraison min 500 FC"),
+  deliveryFee: z.coerce.number().min(500, "Livraison min 500 FC"),
   articlePrice: z.coerce.number().min(0, "Prix invalide"),
-  paymentMethod: z.enum(["cod", "mobile_money"]),
 });
 
 function LocationMarker({ activeField, onLocationSelect, userLocation }: { activeField: 'pickup' | 'delivery' | null, onLocationSelect: (lat: number, lng: number) => void, userLocation: L.LatLng | null }) {
@@ -89,13 +87,12 @@ export default function OrderPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      recipientName: "",
-      recipientPhone: "",
+      customerName: "",
+      customerPhone: "",
       pickupAddress: "Avenue de la Libération, Kinshasa, RDC",
       deliveryAddress: "",
-      price: 2500,
+      deliveryFee: 2500,
       articlePrice: 0,
-      paymentMethod: "cod",
     },
   });
 
@@ -116,7 +113,6 @@ export default function OrderPage() {
           const { latitude, longitude } = position.coords;
           setUserLocation(new L.LatLng(latitude, longitude));
           
-          // Auto-fill pickup address with current location
           const address = await fetchAddress(latitude, longitude);
           form.setValue("pickupAddress", address);
           setPickupCoords({ lat: latitude, lng: longitude });
@@ -143,36 +139,29 @@ export default function OrderPage() {
       setDeliveryCoords({ lat, lng });
       form.setValue("deliveryAddress", address);
     }
-    setActiveField(null); // Clear active field to hide yellow text
+    setActiveField(null);
   };
 
   async function submitOrder(values: z.infer<typeof formSchema>, sellerId?: string) {
     setIsSubmitting(true);
     try {
-      const pickupCoord = pickupCoords || { lat: -4.325, lng: 15.3222 };
-      const deliveryCoord = deliveryCoords || { lat: -4.325, lng: 15.3222 };
-      
-      const result = await createOrder({
+      const result = await createDelivery({
         ...values,
-        pickupLat: pickupCoord.lat.toString(),
-        pickupLng: pickupCoord.lng.toString(),
-        deliveryLat: deliveryCoord.lat.toString(),
-        deliveryLng: deliveryCoord.lng.toString(),
-        price: values.price.toString(),
+        deliveryFee: values.deliveryFee.toString(),
         articlePrice: values.articlePrice.toString(),
-        sellerId: sellerId || profile?.id,
+        sellerId: sellerId || profile?.id || "",
       });
       
       toast({
         title: "Course lancée !",
-        description: result.message || `SMS envoyé au ${values.recipientPhone}. Tracking: ${result.order.trackingToken}`,
+        description: result.message || `SMS envoyé au ${values.customerPhone}. ID: ${result.delivery.id.substring(0, 8)}`,
       });
       
       form.reset();
       setPickupCoords(null);
       setDeliveryCoords(null);
       
-      if (profile?.role === 'seller') {
+      if (profile?.role === 'seller' || profile?.role === 'temp_seller' || profile?.role === 'pro_seller') {
         setLocation("/seller-packages");
       }
     } catch (error: any) {
@@ -187,7 +176,7 @@ export default function OrderPage() {
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!profile || profile.role !== 'seller') {
+    if (!profile || (profile.role !== 'seller' && profile.role !== 'temp_seller' && profile.role !== 'pro_seller')) {
       setPendingFormValues(values);
       setShowLoginDialog(true);
       return;
@@ -209,17 +198,16 @@ export default function OrderPage() {
       const foundProfile = await getProfileByPhone(loginPhone);
       setProfile({
         id: foundProfile.id,
-        name: foundProfile.name,
-        phone: foundProfile.phone,
-        email: foundProfile.email || undefined,
+        name: foundProfile.fullName || "",
+        phone: foundProfile.phoneNumber,
         role: foundProfile.role as 'seller' | 'courier' | 'customer',
-        avatar: foundProfile.avatar || undefined,
+        avatar: foundProfile.avatarUrl || undefined,
       });
       setShowLoginDialog(false);
       setLoginPhone("");
       toast({
         title: "Connexion réussie",
-        description: `Bienvenue ${foundProfile.name}!`,
+        description: `Bienvenue ${foundProfile.fullName}!`,
       });
       if (pendingFormValues) {
         await submitOrder(pendingFormValues, foundProfile.id);
@@ -236,14 +224,10 @@ export default function OrderPage() {
     }
   }
 
-  const paymentMethod = form.watch("paymentMethod");
-
-  // Mock address suggestions
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const handleAddressChange = async (value: string) => {
     if (value.length > 2) {
       try {
-        // Bias results towards Kinshasa
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}+Kinshasa&countrycodes=cd&limit=5`);
         const data = await response.json();
         setSuggestions(data.map((item: any) => item.display_name));
@@ -257,7 +241,6 @@ export default function OrderPage() {
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-80px)] overflow-hidden bg-white">
-      {/* Left Panel - Uber Style */}
       <div className="w-full md:w-[450px] bg-white z-20 flex flex-col shadow-2xl h-full overflow-y-auto">
         <div className="p-8 space-y-8">
           <div className="flex items-center justify-between">
@@ -278,12 +261,9 @@ export default function OrderPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               
-              {/* Ride Inputs Card */}
               <div className="bg-gray-50 p-4 rounded-3xl space-y-4 border border-gray-100 relative">
-                {/* Visual Connector Line */}
                 <div className="absolute left-[27px] top-[40px] bottom-[40px] w-0.5 bg-gray-300 z-0"></div>
                 
-                {/* Pickup Input */}
                 <FormField
                   control={form.control}
                   name="pickupAddress"
@@ -305,13 +285,11 @@ export default function OrderPage() {
                             }}
                             onFocus={() => setActiveField('pickup')}
                             onBlur={() => {
-                               // Delay hiding to allow click on suggestion
                                setTimeout(() => {
                                  if (activeField === 'pickup') setActiveField(null);
                                }, 200);
                             }}
                           />
-                          {/* Suggestions Dropdown */}
                           {activeField === 'pickup' && suggestions.length > 0 && (
                             <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border border-gray-100 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-200">
                               {suggestions.map((suggestion, idx) => (
@@ -319,7 +297,7 @@ export default function OrderPage() {
                                   key={idx} 
                                   className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-50 last:border-none flex items-center gap-3 transition-colors"
                                   onMouseDown={(e) => {
-                                    e.preventDefault(); // Prevent blur
+                                    e.preventDefault();
                                     form.setValue("pickupAddress", suggestion);
                                     setSuggestions([]);
                                     setActiveField(null);
@@ -345,7 +323,6 @@ export default function OrderPage() {
                   )}
                 />
 
-                {/* Delivery Input */}
                 <FormField
                   control={form.control}
                   name="deliveryAddress"
@@ -372,7 +349,6 @@ export default function OrderPage() {
                                }, 200);
                             }}
                           />
-                          {/* Suggestions Dropdown */}
                           {activeField === 'delivery' && suggestions.length > 0 && (
                             <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border border-gray-100 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-200">
                               {suggestions.map((suggestion, idx) => (
@@ -407,7 +383,6 @@ export default function OrderPage() {
                 />
               </div>
 
-              {/* Time Selector (Mock) */}
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors">
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5 text-secondary" />
@@ -416,12 +391,11 @@ export default function OrderPage() {
                 <ArrowRight className="h-4 w-4 text-gray-400" />
               </div>
 
-              {/* Details & Price */}
               <div className="space-y-4 pt-4 border-t border-gray-100">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="recipientName"
+                    name="customerName"
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
@@ -433,7 +407,7 @@ export default function OrderPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="recipientPhone"
+                    name="customerPhone"
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
@@ -446,25 +420,23 @@ export default function OrderPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {paymentMethod === 'cod' && (
-                    <FormField
-                      control={form.control}
-                      name="articlePrice"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[10px] font-black uppercase tracking-widest">Prix Article (FC)</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="À récupérer" className="h-12 bg-gray-50 border-gray-100 rounded-xl font-black text-lg" {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  )}
                   <FormField
                     control={form.control}
-                    name="price"
+                    name="articlePrice"
                     render={({ field }) => (
-                      <FormItem className={cn(paymentMethod !== 'cod' && "col-span-2")}>
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest">Prix Article (FC)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="À récupérer" className="h-12 bg-gray-50 border-gray-100 rounded-xl font-black text-lg" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="deliveryFee"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel className="text-[10px] font-black uppercase tracking-widest">Prix Livraison (FC)</FormLabel>
                         <FormControl>
                           <Input type="number" className="h-12 bg-gray-50 border-gray-100 rounded-xl font-black text-lg" {...field} />
@@ -472,26 +444,7 @@ export default function OrderPage() {
                       </FormItem>
                     )}
                   />
-                  
                 </div>
-                  <FormField
-                    control={form.control}
-                    name="paymentMethod"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest">Paiement</FormLabel>
-                        <FormControl>
-                           <select 
-                             className="w-full h-12 bg-gray-50 border-gray-100 rounded-xl px-3 font-bold text-sm outline-none focus:ring-2 focus:ring-black"
-                             {...field}
-                           >
-                             <option value="cod">Cash (Espèces)</option>
-                             <option value="mobile_money">Mobile Money</option>
-                           </select>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
               </div>
 
               <Button 
@@ -506,90 +459,45 @@ export default function OrderPage() {
         </div>
       </div>
 
-      {/* Right Panel - Map */}
       <div className="flex-1 relative bg-gray-100 h-[50vh] md:h-full w-full">
          <MapContainer 
             center={[-4.325, 15.3222]} 
             zoom={13} 
             scrollWheelZoom={true}
             className="h-full w-full z-0"
-            zoomControl={false}
-          >
+         >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
             <LocationMarker activeField={activeField} onLocationSelect={handleLocationSelect} userLocation={userLocation} />
-            
-            {/* Custom Zoom Control could go here */}
-          </MapContainer>
-          
-          {/* Map Overlay Info - REMOVED per user request */}
+         </MapContainer>
       </div>
 
       <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <DialogContent className="sm:max-w-md rounded-[2rem] p-0 overflow-hidden">
-          <div className="p-8 space-y-6">
-            <DialogHeader className="text-center space-y-4">
-              <div className="flex justify-center">
-                <img src={kolisaLogo} alt="KOLISA" className="h-12" />
-              </div>
-              <DialogTitle className="text-xl font-black text-secondary tracking-tight">
-                Identifiez-vous pour commander
-              </DialogTitle>
-              <p className="text-sm text-gray-500">
-                Entrez votre numéro de téléphone pour lancer votre commande
-              </p>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Numéro de téléphone</label>
-                <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="tel"
-                    placeholder="0812345678"
-                    value={loginPhone}
-                    onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    className="pl-12 h-14 rounded-xl text-lg font-medium"
-                    data-testid="input-login-phone"
-                    onKeyDown={(e) => e.key === 'Enter' && handleLoginFromDialog()}
-                  />
-                </div>
-              </div>
-
-              <Button
-                onClick={handleLoginFromDialog}
-                disabled={isLoggingIn || loginPhone.length < 9}
-                className="w-full h-14 rounded-xl bg-secondary hover:bg-secondary/90 text-white font-bold text-base gap-2"
-                data-testid="button-dialog-login"
-              >
-                {isLoggingIn ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    Se connecter et commander
-                    <ArrowRight className="h-5 w-5" />
-                  </>
-                )}
-              </Button>
-
-              <div className="text-center pt-2">
-                <p className="text-sm text-gray-500">Pas encore de compte?</p>
-                <button
-                  onClick={() => { setShowLoginDialog(false); setLocation('/register'); }}
-                  className="text-primary font-bold text-sm mt-1"
-                  data-testid="link-dialog-register"
-                >
-                  Créer un compte
-                </button>
-              </div>
-            </div>
+        <DialogContent className="rounded-[2rem] p-8 max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center font-black text-xl">Connexion requise</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-gray-500 text-center">Connectez-vous avec votre numéro de téléphone pour continuer</p>
+            <Input 
+              type="tel" 
+              placeholder="0812345678" 
+              value={loginPhone}
+              onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              className="h-14 rounded-xl text-lg font-medium text-center"
+            />
+            <Button 
+              onClick={handleLoginFromDialog}
+              disabled={isLoggingIn || loginPhone.length < 9}
+              className="w-full h-14 bg-secondary text-white font-bold rounded-xl"
+            >
+              {isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : "Se connecter"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-

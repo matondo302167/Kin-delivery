@@ -1,9 +1,6 @@
-// API client for KOLISA backend
-import type { Order, Profile, Transaction } from "@shared/schema";
+import type { Delivery, Profile, Transaction } from "@shared/schema";
 
 const API_BASE = "/api";
-
-// ===== PROFILES =====
 
 export async function getProfile(id: string): Promise<Profile> {
   const res = await fetch(`${API_BASE}/profiles/${id}`);
@@ -18,9 +15,9 @@ export async function getProfileByPhone(phone: string): Promise<Profile> {
 }
 
 export async function createProfile(data: {
-  name: string;
-  phone: string;
-  email?: string;
+  id: string;
+  phoneNumber: string;
+  fullName?: string;
   role: string;
 }): Promise<Profile> {
   const res = await fetch(`${API_BASE}/profiles`, {
@@ -32,82 +29,60 @@ export async function createProfile(data: {
   return res.json();
 }
 
-// ===== ORDERS =====
-
-export async function listOrders(filters?: {
+export async function listDeliveries(filters?: {
   status?: string;
   sellerId?: string;
-  courierId?: string;
-}): Promise<Order[]> {
+  driverId?: string;
+}): Promise<Delivery[]> {
   const params = new URLSearchParams();
   if (filters?.status) params.set("status", filters.status);
   if (filters?.sellerId) params.set("sellerId", filters.sellerId);
-  if (filters?.courierId) params.set("courierId", filters.courierId);
+  if (filters?.driverId) params.set("driverId", filters.driverId);
   
-  const res = await fetch(`${API_BASE}/orders?${params.toString()}`);
-  if (!res.ok) throw new Error("Failed to fetch orders");
+  const res = await fetch(`${API_BASE}/deliveries?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch deliveries");
   return res.json();
 }
 
-export async function getOrder(id: string): Promise<Order> {
-  const res = await fetch(`${API_BASE}/orders/${id}`);
-  if (!res.ok) throw new Error("Failed to fetch order");
+export async function getDelivery(id: string): Promise<Delivery> {
+  const res = await fetch(`${API_BASE}/deliveries/${id}`);
+  if (!res.ok) throw new Error("Failed to fetch delivery");
   return res.json();
 }
 
-export async function getOrderByToken(token: string): Promise<Order> {
-  const res = await fetch(`${API_BASE}/orders/track/${token}`);
-  if (!res.ok) throw new Error("Failed to fetch order");
-  return res.json();
-}
-
-export async function createOrder(data: {
-  recipientName: string;
-  recipientPhone: string;
+export async function createDelivery(data: {
+  customerName: string;
+  customerPhone: string;
   pickupAddress: string;
   deliveryAddress: string;
-  pickupLat?: string;
-  pickupLng?: string;
-  deliveryLat?: string;
-  deliveryLng?: string;
-  price: string;
+  deliveryFee: string;
   articlePrice: string;
-  paymentMethod: string;
-  note?: string;
-  sellerId?: string;
-}): Promise<{ order: Order; smsStatus: string; message: string }> {
-  const res = await fetch(`${API_BASE}/orders`, {
+  sellerId: string;
+}): Promise<{ delivery: Delivery; smsStatus: string; message: string }> {
+  const res = await fetch(`${API_BASE}/deliveries`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.error || "Failed to create order");
+    throw new Error(error.error || "Failed to create delivery");
   }
   return res.json();
 }
 
-export async function acceptOrder(orderId: string, courierId: string): Promise<Order> {
-  const res = await fetch(`${API_BASE}/orders/${orderId}/accept`, {
+export async function acceptDelivery(deliveryId: string, driverId: string): Promise<Delivery> {
+  const res = await fetch(`${API_BASE}/deliveries/${deliveryId}/accept`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ courierId }),
+    body: JSON.stringify({ driverId }),
   });
-  if (!res.ok) throw new Error("Failed to accept order");
+  if (!res.ok) throw new Error("Failed to accept delivery");
   return res.json();
 }
 
-export async function confirmCashCollection(orderId: string): Promise<Order> {
-  const res = await fetch(`${API_BASE}/orders/${orderId}/cash-collected`, {
-    method: "POST",
-  });
-  if (!res.ok) throw new Error("Failed to confirm cash collection");
-  return res.json();
-}
-
-export async function updateOrderPhoto(orderId: string, photoUrl: string): Promise<Order> {
-  const res = await fetch(`${API_BASE}/orders/${orderId}/photo`, {
+export async function updateDeliveryPhoto(deliveryId: string, photoUrl: string): Promise<Delivery> {
+  const res = await fetch(`${API_BASE}/deliveries/${deliveryId}/photo`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ photoUrl }),
@@ -116,14 +91,14 @@ export async function updateOrderPhoto(orderId: string, photoUrl: string): Promi
   return res.json();
 }
 
-export async function validateDelivery(orderId: string, pinCode: string, courierId?: string): Promise<{
-  order: Order;
+export async function validateDelivery(deliveryId: string, otpCode: string, driverId?: string): Promise<{
+  delivery: Delivery;
   message: string;
 }> {
-  const res = await fetch(`${API_BASE}/orders/${orderId}/validate`, {
+  const res = await fetch(`${API_BASE}/deliveries/${deliveryId}/validate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pinCode, courierId }),
+    body: JSON.stringify({ otpCode, driverId }),
   });
   if (!res.ok) {
     const error = await res.json();
@@ -132,18 +107,13 @@ export async function validateDelivery(orderId: string, pinCode: string, courier
   return res.json();
 }
 
-// ===== TRANSACTIONS =====
-
-export async function listTransactions(profileId: string): Promise<Transaction[]> {
-  const res = await fetch(`${API_BASE}/transactions/${profileId}`);
+export async function listTransactions(userId: string): Promise<Transaction[]> {
+  const res = await fetch(`${API_BASE}/transactions/${userId}`);
   if (!res.ok) throw new Error("Failed to fetch transactions");
   return res.json();
 }
 
-// ===== FILE UPLOAD =====
-
 export async function uploadFile(file: File): Promise<{ uploadURL: string; objectPath: string }> {
-  // Step 1: Request presigned URL
   const res = await fetch("/api/uploads/request-url", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -158,7 +128,6 @@ export async function uploadFile(file: File): Promise<{ uploadURL: string; objec
   
   const { uploadURL, objectPath } = await res.json();
   
-  // Step 2: Upload file to presigned URL
   const uploadRes = await fetch(uploadURL, {
     method: "PUT",
     body: file,

@@ -12,13 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getProfile, listTransactions } from "@/lib/api";
-import type { Profile, Transaction } from "@shared/schema";
+import { listTransactions } from "@/lib/api";
+import type { Transaction } from "@shared/schema";
 
 export default function WalletPage() {
   const { profile } = useStore();
   const { toast } = useToast();
-  const [profileData, setProfileData] = useState<Profile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -27,11 +26,7 @@ export default function WalletPage() {
     
     try {
       setIsLoading(true);
-      const [profileInfo, txList] = await Promise.all([
-        getProfile(profile.id),
-        listTransactions(profile.id),
-      ]);
-      setProfileData(profileInfo);
+      const txList = await listTransactions(profile.id);
       setTransactions(txList);
     } catch (error) {
       console.error("Failed to load wallet data:", error);
@@ -42,13 +37,16 @@ export default function WalletPage() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 15000); // Refresh every 15s
+    const interval = setInterval(loadData, 15000);
     return () => clearInterval(interval);
   }, [profile?.id]);
 
+  const totalBalance = transactions.reduce((sum, tx) => {
+    return sum + parseFloat(tx.amount);
+  }, 0);
+
   const handleWithdraw = () => {
-    const balance = parseFloat(profileData?.balance || "0");
-    if (balance <= 0) {
+    if (totalBalance <= 0) {
       toast({
         title: "Solde insuffisant",
         description: "Vous n'avez pas de fonds à retirer.",
@@ -69,7 +67,6 @@ export default function WalletPage() {
       <h2 className="text-2xl font-display font-bold">Portefeuille</h2>
 
       <Card className="bg-secondary text-white border-none shadow-xl relative overflow-hidden">
-        {/* Abstract pattern overlay */}
         <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -87,7 +84,7 @@ export default function WalletPage() {
                 </CardTitle>
               </div>
               <p className="text-5xl font-black tracking-tighter">
-                {parseFloat(profileData?.balance || "0").toLocaleString()} <span className="text-3xl">FC</span>
+                {totalBalance.toLocaleString()} <span className="text-3xl">FC</span>
               </p>
             </CardHeader>
 
@@ -96,7 +93,7 @@ export default function WalletPage() {
                 variant="ghost"
                 className="flex-1 bg-white/20 hover:bg-white/30 text-white font-black uppercase tracking-wider h-12 rounded-xl"
                 onClick={handleWithdraw}
-                disabled={parseFloat(profileData?.balance || "0") <= 0}
+                disabled={totalBalance <= 0}
               >
                 <ArrowUpRight className="mr-2 h-5 w-5" />
                 Retirer
@@ -130,9 +127,9 @@ export default function WalletPage() {
                         <ArrowDownLeft className="h-4 w-4 text-green-700" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{tx.description || `Transaction ${tx.id}`}</p>
+                        <p className="font-medium text-sm">{tx.description || `Transaction ${tx.id.substring(0, 8)}`}</p>
                         <p className="text-xs text-muted-foreground capitalize">
-                          {format(new Date(tx.createdAt), "dd MMM, HH:mm", { locale: fr })}
+                          {tx.createdAt ? format(new Date(tx.createdAt), "dd MMM, HH:mm", { locale: fr }) : ""}
                         </p>
                       </div>
                     </div>
