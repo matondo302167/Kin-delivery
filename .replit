@@ -46,3 +46,6 @@ waitForPort = 5000
 [agent]
 mockupState = "FULLSTACK"
 integrations = ["twilio:1.0.0", "javascript_object_storage:2.0.0"]
+
+[objectStorage]
+defaultBucketID = "replit-objstore-c29e1aca-0ec2-4db7-8f95-6e48810a196f"
