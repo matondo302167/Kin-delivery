@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { insertDeliverySchema, insertProfileSchema } from "@shared/schema";
 import { z } from "zod";
@@ -48,6 +49,7 @@ export async function registerRoutes(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }
+      console.error("Profile creation error:", error);
       res.status(500).json({ error: "Failed to create profile" });
     }
   });
@@ -55,12 +57,12 @@ export async function registerRoutes(
   app.get("/api/deliveries", async (req, res) => {
     try {
       const { status, sellerId, driverId } = req.query;
-      const deliveries = await storage.listDeliveries({
+      const list = await storage.listDeliveries({
         status: status as string,
         sellerId: sellerId as string,
         driverId: driverId as string,
       });
-      res.json(deliveries);
+      res.json(list);
     } catch (error) {
       console.error("Deliveries fetch error:", error);
       res.status(500).json({ error: "Failed to fetch deliveries" });
@@ -121,7 +123,6 @@ export async function registerRoutes(
       if (!driverId) {
         return res.status(400).json({ error: "Driver ID required" });
       }
-      
       const delivery = await storage.assignDriver(req.params.id, driverId);
       res.json(delivery);
     } catch (error) {
@@ -135,7 +136,6 @@ export async function registerRoutes(
       if (!photoUrl) {
         return res.status(400).json({ error: "Photo URL required" });
       }
-      
       const delivery = await storage.updateDeliveryPhoto(req.params.id, photoUrl);
       res.json(delivery);
     } catch (error) {
@@ -161,7 +161,7 @@ export async function registerRoutes(
       }
       
       if (!delivery.proofImageUrl) {
-        return res.status(400).json({ error: "Delivery photo proof required" });
+        return res.status(400).json({ error: "Photo proof required" });
       }
       
       const updatedDelivery = await storage.updateDeliveryStatus(req.params.id, 'delivered');
@@ -191,8 +191,8 @@ export async function registerRoutes(
   
   app.get("/api/transactions/:userId", async (req, res) => {
     try {
-      const transactions = await storage.listTransactions(req.params.userId);
-      res.json(transactions);
+      const txList = await storage.listTransactions(req.params.userId);
+      res.json(txList);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch transactions" });
     }

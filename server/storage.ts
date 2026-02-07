@@ -1,12 +1,10 @@
 import { db } from "./db";
+import { pool } from "./db";
 import {
-  profiles, deliveries, transactions, driverDetails, sellerDetails, driverLocations,
+  profiles, deliveries, transactions,
   type Profile, type InsertProfile,
   type Delivery, type InsertDelivery,
   type Transaction, type InsertTransaction,
-  type DriverDetails, type InsertDriverDetails,
-  type SellerDetails, type InsertSellerDetails,
-  type DriverLocation,
 } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 
@@ -18,18 +16,12 @@ export interface IStorage {
   getDelivery(id: string): Promise<Delivery | undefined>;
   listDeliveries(filters?: { status?: string; sellerId?: string; driverId?: string }): Promise<Delivery[]>;
   createDelivery(delivery: InsertDelivery & { otpCode: string }): Promise<Delivery>;
-  updateDeliveryStatus(id: string, status: string, updates?: Partial<Delivery>): Promise<Delivery>;
+  updateDeliveryStatus(id: string, status: string): Promise<Delivery>;
   assignDriver(deliveryId: string, driverId: string): Promise<Delivery>;
   updateDeliveryPhoto(deliveryId: string, photoUrl: string): Promise<Delivery>;
 
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   listTransactions(userId: string): Promise<Transaction[]>;
-
-  getDriverDetails(profileId: string): Promise<DriverDetails | undefined>;
-  createDriverDetails(details: InsertDriverDetails): Promise<DriverDetails>;
-
-  getSellerDetails(profileId: string): Promise<SellerDetails | undefined>;
-  createSellerDetails(details: InsertSellerDetails): Promise<SellerDetails>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -43,9 +35,37 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async createProfile(profile: InsertProfile): Promise<Profile> {
-    const result = await db.insert(profiles).values(profile).returning();
-    return result[0];
+  async createProfile(profileData: InsertProfile): Promise<Profile> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const userId = profileData.id || require('crypto').randomUUID();
+      
+      await client.query(
+        `INSERT INTO auth.users (id, instance_id, aud, role, email, phone, encrypted_password, email_confirmed_at, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+         VALUES ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2, $3, '', NOW(), NOW(), NOW(), '', '', '', '')
+         ON CONFLICT (id) DO NOTHING`,
+        [userId, `${profileData.phoneNumber}@kolisa.app`, profileData.phoneNumber]
+      );
+      
+      await client.query(
+        `INSERT INTO public.profiles (id, phone_number, full_name, role, avatar_url)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [userId, profileData.phoneNumber, profileData.fullName || null, profileData.role || 'temp_seller', profileData.avatarUrl || null]
+      );
+      
+      await client.query('COMMIT');
+      
+      const result = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
+      return result[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async getDelivery(id: string): Promise<Delivery | undefined> {
@@ -74,13 +94,9 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateDeliveryStatus(id: string, status: string, updates?: Partial<Delivery>): Promise<Delivery> {
-    const updateData: any = { status };
-    if (updates) {
-      Object.assign(updateData, updates);
-    }
+  async updateDeliveryStatus(id: string, status: string): Promise<Delivery> {
     const result = await db.update(deliveries)
-      .set(updateData)
+      .set({ status })
       .where(eq(deliveries.id, id))
       .returning();
     return result[0];
@@ -111,26 +127,6 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(transactions)
       .where(eq(transactions.userId, userId))
       .orderBy(desc(transactions.createdAt));
-  }
-
-  async getDriverDetails(profileId: string): Promise<DriverDetails | undefined> {
-    const result = await db.select().from(driverDetails).where(eq(driverDetails.profileId, profileId)).limit(1);
-    return result[0];
-  }
-
-  async createDriverDetails(details: InsertDriverDetails): Promise<DriverDetails> {
-    const result = await db.insert(driverDetails).values(details).returning();
-    return result[0];
-  }
-
-  async getSellerDetails(profileId: string): Promise<SellerDetails | undefined> {
-    const result = await db.select().from(sellerDetails).where(eq(sellerDetails.profileId, profileId)).limit(1);
-    return result[0];
-  }
-
-  async createSellerDetails(details: InsertSellerDetails): Promise<SellerDetails> {
-    const result = await db.insert(sellerDetails).values(details).returning();
-    return result[0];
   }
 }
 

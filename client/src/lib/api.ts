@@ -15,7 +15,6 @@ export async function getProfileByPhone(phone: string): Promise<Profile> {
 }
 
 export async function createProfile(data: {
-  id: string;
   phoneNumber: string;
   fullName?: string;
   role: string;
@@ -25,7 +24,10 @@ export async function createProfile(data: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to create profile");
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(JSON.stringify(error.error) || "Failed to create profile");
+  }
   return res.json();
 }
 
@@ -123,18 +125,13 @@ export async function uploadFile(file: File): Promise<{ uploadURL: string; objec
       contentType: file.type || "application/octet-stream",
     }),
   });
-  
   if (!res.ok) throw new Error("Failed to get upload URL");
-  
   const { uploadURL, objectPath } = await res.json();
-  
   const uploadRes = await fetch(uploadURL, {
     method: "PUT",
     body: file,
     headers: { "Content-Type": file.type || "application/octet-stream" },
   });
-  
   if (!uploadRes.ok) throw new Error("Failed to upload file");
-  
   return { uploadURL, objectPath };
 }

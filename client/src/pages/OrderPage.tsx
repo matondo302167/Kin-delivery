@@ -8,16 +8,13 @@ import { createDelivery, getProfileByPhone } from "@/lib/api";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Phone, User, PackagePlus, Clock, Wallet, Banknote, Navigation, ArrowRight, Package, Loader2, ArrowLeft } from "lucide-react";
-import { motion } from "framer-motion";
+import { MapPin, Clock, ArrowRight, Package, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Popup } from 'react-leaflet';
 import L, { LeafletMouseEvent } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import kolisaLogo from "@/assets/kolisa-logo.png";
 
 // @ts-ignore
 delete L.Icon.Default.prototype._getIconUrl;
@@ -42,9 +39,7 @@ function LocationMarker({ activeField, onLocationSelect, userLocation }: { activ
   const map = useMap();
 
   useEffect(() => {
-    if (userLocation) {
-       map.flyTo(userLocation, 15);
-    }
+    if (userLocation) map.flyTo(userLocation, 15);
   }, [userLocation, map]);
 
   useMapEvents({
@@ -52,11 +47,9 @@ function LocationMarker({ activeField, onLocationSelect, userLocation }: { activ
       if (activeField === 'pickup') {
         setPickupPos(e.latlng);
         onLocationSelect(e.latlng.lat, e.latlng.lng);
-        map.flyTo(e.latlng, map.getZoom());
       } else if (activeField === 'delivery') {
         setDeliveryPos(e.latlng);
         onLocationSelect(e.latlng.lat, e.latlng.lng);
-        map.flyTo(e.latlng, map.getZoom());
       }
     },
   });
@@ -76,8 +69,6 @@ export default function OrderPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [, setLocation] = useLocation();
   const [activeField, setActiveField] = useState<'pickup' | 'delivery' | null>(null);
-  const [pickupCoords, setPickupCoords] = useState<{lat: number, lng: number} | null>(null);
-  const [deliveryCoords, setDeliveryCoords] = useState<{lat: number, lng: number} | null>(null);
   const [userLocation, setUserLocation] = useState<L.LatLng | null>(null);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [loginPhone, setLoginPhone] = useState("");
@@ -112,113 +103,65 @@ export default function OrderPage() {
         async (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation(new L.LatLng(latitude, longitude));
-          
           const address = await fetchAddress(latitude, longitude);
           form.setValue("pickupAddress", address);
-          setPickupCoords({ lat: latitude, lng: longitude });
-          
-          toast({
-             title: "Localisation activée",
-             description: "Votre position a été définie comme point de départ.",
-          });
         },
-        (error) => {
-          console.error("Error getting location", error);
-        }
+        () => {}
       );
     }
   }, []);
 
   const handleLocationSelect = async (lat: number, lng: number) => {
     const address = await fetchAddress(lat, lng);
-    
-    if (activeField === 'pickup') {
-      setPickupCoords({ lat, lng });
-      form.setValue("pickupAddress", address);
-    } else if (activeField === 'delivery') {
-      setDeliveryCoords({ lat, lng });
-      form.setValue("deliveryAddress", address);
-    }
+    if (activeField === 'pickup') form.setValue("pickupAddress", address);
+    else if (activeField === 'delivery') form.setValue("deliveryAddress", address);
     setActiveField(null);
   };
 
-  async function submitOrder(values: z.infer<typeof formSchema>, sellerId?: string) {
+  async function submitDelivery(values: z.infer<typeof formSchema>, sellerId?: string) {
     setIsSubmitting(true);
     try {
       const result = await createDelivery({
-        ...values,
+        customerName: values.customerName,
+        customerPhone: values.customerPhone,
+        pickupAddress: values.pickupAddress,
+        deliveryAddress: values.deliveryAddress,
         deliveryFee: values.deliveryFee.toString(),
         articlePrice: values.articlePrice.toString(),
         sellerId: sellerId || profile?.id || "",
       });
-      
-      toast({
-        title: "Course lancée !",
-        description: result.message || `SMS envoyé au ${values.customerPhone}. ID: ${result.delivery.id.substring(0, 8)}`,
-      });
-      
+      toast({ title: "Course lancée !", description: result.message || `ID: ${result.delivery.id.substring(0, 8)}` });
       form.reset();
-      setPickupCoords(null);
-      setDeliveryCoords(null);
-      
-      if (profile?.role === 'seller' || profile?.role === 'temp_seller' || profile?.role === 'pro_seller') {
-        setLocation("/seller-packages");
-      }
+      if (profile?.role === 'seller') setLocation("/seller-packages");
     } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de créer la commande",
-        variant: "destructive",
-      });
+      toast({ title: "Erreur", description: error.message || "Impossible de créer la commande", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!profile || (profile.role !== 'seller' && profile.role !== 'temp_seller' && profile.role !== 'pro_seller')) {
+    if (!profile || (profile.role !== 'seller')) {
       setPendingFormValues(values);
       setShowLoginDialog(true);
       return;
     }
-    await submitOrder(values);
+    await submitDelivery(values);
   }
 
   async function handleLoginFromDialog() {
-    if (loginPhone.length < 9) {
-      toast({
-        title: "Numéro invalide",
-        description: "Veuillez entrer un numéro de téléphone valide",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (loginPhone.length < 9) { toast({ title: "Numéro invalide", variant: "destructive" }); return; }
     setIsLoggingIn(true);
     try {
       const foundProfile = await getProfileByPhone(loginPhone);
-      setProfile({
-        id: foundProfile.id,
-        name: foundProfile.fullName || "",
-        phone: foundProfile.phoneNumber,
-        role: foundProfile.role as 'seller' | 'courier' | 'customer',
-        avatar: foundProfile.avatarUrl || undefined,
-      });
+      const displayRole = foundProfile.role === 'driver' ? 'courier' : foundProfile.role === 'temp_seller' || foundProfile.role === 'pro_seller' ? 'seller' : 'customer';
+      setProfile({ id: foundProfile.id, name: foundProfile.fullName || "", phone: foundProfile.phoneNumber, role: displayRole as any, avatar: foundProfile.avatarUrl || undefined });
       setShowLoginDialog(false);
       setLoginPhone("");
-      toast({
-        title: "Connexion réussie",
-        description: `Bienvenue ${foundProfile.fullName}!`,
-      });
-      if (pendingFormValues) {
-        await submitOrder(pendingFormValues, foundProfile.id);
-        setPendingFormValues(null);
-      }
+      toast({ title: "Connexion réussie", description: `Bienvenue ${foundProfile.fullName}!` });
+      if (pendingFormValues) { await submitDelivery(pendingFormValues, foundProfile.id); setPendingFormValues(null); }
     } catch (error) {
-      toast({
-        title: "Compte introuvable",
-        description: "Ce numéro n'est pas enregistré. Créez un compte d'abord.",
-        variant: "destructive",
-      });
+      toast({ title: "Compte introuvable", description: "Ce numéro n'est pas enregistré.", variant: "destructive" });
     } finally {
       setIsLoggingIn(false);
     }
@@ -231,12 +174,8 @@ export default function OrderPage() {
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}+Kinshasa&countrycodes=cd&limit=5`);
         const data = await response.json();
         setSuggestions(data.map((item: any) => item.display_name));
-      } catch (e) {
-        setSuggestions([]);
-      }
-    } else {
-      setSuggestions([]);
-    }
+      } catch (e) { setSuggestions([]); }
+    } else { setSuggestions([]); }
   };
 
   return (
@@ -248,210 +187,99 @@ export default function OrderPage() {
               <h1 className="text-3xl font-black tracking-tighter text-secondary">Commander</h1>
               <p className="text-sm text-gray-500 font-medium">Nouvelle livraison express.</p>
             </div>
-            <Button 
-               variant="outline" 
-               size="icon" 
-               className="rounded-full h-12 w-12 border-2 border-gray-100 hover:bg-gray-50 hover:border-black transition-colors"
-               onClick={() => setLocation("/seller-packages")}
-            >
-               <Package className="h-5 w-5 text-secondary" />
+            <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-2 border-gray-100"
+              onClick={() => setLocation("/seller-packages")} data-testid="button-packages">
+              <Package className="h-5 w-5 text-secondary" />
             </Button>
           </div>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              
               <div className="bg-gray-50 p-4 rounded-3xl space-y-4 border border-gray-100 relative">
                 <div className="absolute left-[27px] top-[40px] bottom-[40px] w-0.5 bg-gray-300 z-0"></div>
                 
-                <FormField
-                  control={form.control}
-                  name="pickupAddress"
-                  render={({ field }) => (
-                    <FormItem className={cn("relative transition-all duration-200", activeField === 'pickup' ? "z-30" : "z-20")}>
-                      <FormControl>
-                        <div className="relative group">
-                          <div className="absolute left-3 top-3.5 w-2.5 h-2.5 rounded-full bg-black border-2 border-black z-20 ring-4 ring-white" />
-                          <Input 
-                            placeholder="Point de départ" 
-                            className={cn(
-                              "pl-10 h-12 bg-white border-0 shadow-sm rounded-xl font-medium focus-visible:ring-2 focus-visible:ring-black transition-all",
-                              activeField === 'pickup' && "ring-2 ring-black scale-[1.02] shadow-md"
-                            )} 
-                            {...field}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              handleAddressChange(e.target.value);
-                            }}
-                            onFocus={() => setActiveField('pickup')}
-                            onBlur={() => {
-                               setTimeout(() => {
-                                 if (activeField === 'pickup') setActiveField(null);
-                               }, 200);
-                            }}
-                          />
-                          {activeField === 'pickup' && suggestions.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border border-gray-100 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-200">
-                              {suggestions.map((suggestion, idx) => (
-                                <div 
-                                  key={idx} 
-                                  className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-50 last:border-none flex items-center gap-3 transition-colors"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    form.setValue("pickupAddress", suggestion);
-                                    setSuggestions([]);
-                                    setActiveField(null);
-                                  }}
-                                >
-                                  <div className="bg-gray-100 p-2 rounded-full shrink-0">
-                                    <MapPin className="h-4 w-4 text-gray-600" />
-                                  </div>
-                                  <span className="truncate text-gray-700">{suggestion}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {activeField === 'pickup' && !field.value && (
-                             <div className="absolute right-3 top-3.5 text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">
-                               Sélectionnez sur la carte
-                             </div>
-                          )}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormField control={form.control} name="pickupAddress" render={({ field }) => (
+                  <FormItem className={cn("relative", activeField === 'pickup' ? "z-30" : "z-20")}>
+                    <FormControl>
+                      <div className="relative">
+                        <div className="absolute left-3 top-3.5 w-2.5 h-2.5 rounded-full bg-black z-20 ring-4 ring-white" />
+                        <Input placeholder="Point de départ" className={cn("pl-10 h-12 bg-white border-0 shadow-sm rounded-xl font-medium", activeField === 'pickup' && "ring-2 ring-black")}
+                          {...field} onChange={(e) => { field.onChange(e); handleAddressChange(e.target.value); }}
+                          onFocus={() => setActiveField('pickup')} onBlur={() => setTimeout(() => { if (activeField === 'pickup') setActiveField(null); }, 200)}
+                          data-testid="input-pickup" />
+                        {activeField === 'pickup' && suggestions.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border max-h-60 overflow-y-auto">
+                            {suggestions.map((s, i) => (
+                              <div key={i} className="p-3 hover:bg-gray-50 cursor-pointer text-sm flex items-center gap-3"
+                                onMouseDown={(e) => { e.preventDefault(); form.setValue("pickupAddress", s); setSuggestions([]); setActiveField(null); }}>
+                                <MapPin className="h-4 w-4 text-gray-400 shrink-0" /><span className="truncate">{s}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
-                <FormField
-                  control={form.control}
-                  name="deliveryAddress"
-                  render={({ field }) => (
-                    <FormItem className={cn("relative transition-all duration-200", activeField === 'delivery' ? "z-30" : "z-20")}>
-                      <FormControl>
-                        <div className="relative group">
-                          <div className="absolute left-3 top-3.5 w-2.5 h-2.5 bg-black z-20 ring-4 ring-white" />
-                          <Input 
-                            placeholder="Point d'arrivée" 
-                            className={cn(
-                              "pl-10 h-12 bg-white border-0 shadow-sm rounded-xl font-medium focus-visible:ring-2 focus-visible:ring-black transition-all",
-                              activeField === 'delivery' && "ring-2 ring-black scale-[1.02] shadow-md"
-                            )} 
-                            {...field}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              handleAddressChange(e.target.value);
-                            }}
-                            onFocus={() => setActiveField('delivery')}
-                            onBlur={() => {
-                               setTimeout(() => {
-                                 if (activeField === 'delivery') setActiveField(null);
-                               }, 200);
-                            }}
-                          />
-                          {activeField === 'delivery' && suggestions.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border border-gray-100 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-200">
-                              {suggestions.map((suggestion, idx) => (
-                                <div 
-                                  key={idx} 
-                                  className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-50 last:border-none flex items-center gap-3 transition-colors"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    form.setValue("deliveryAddress", suggestion);
-                                    setSuggestions([]);
-                                    setActiveField(null);
-                                  }}
-                                >
-                                  <div className="bg-gray-100 p-2 rounded-full shrink-0">
-                                    <MapPin className="h-4 w-4 text-gray-600" />
-                                  </div>
-                                  <span className="truncate text-gray-700">{suggestion}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {activeField === 'delivery' && !field.value && (
-                             <div className="absolute right-3 top-3.5 text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">
-                               Sélectionnez sur la carte
-                             </div>
-                          )}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormField control={form.control} name="deliveryAddress" render={({ field }) => (
+                  <FormItem className={cn("relative", activeField === 'delivery' ? "z-30" : "z-20")}>
+                    <FormControl>
+                      <div className="relative">
+                        <div className="absolute left-3 top-3.5 w-2.5 h-2.5 bg-black z-20 ring-4 ring-white" />
+                        <Input placeholder="Point d'arrivée" className={cn("pl-10 h-12 bg-white border-0 shadow-sm rounded-xl font-medium", activeField === 'delivery' && "ring-2 ring-black")}
+                          {...field} onChange={(e) => { field.onChange(e); handleAddressChange(e.target.value); }}
+                          onFocus={() => setActiveField('delivery')} onBlur={() => setTimeout(() => { if (activeField === 'delivery') setActiveField(null); }, 200)}
+                          data-testid="input-delivery" />
+                        {activeField === 'delivery' && suggestions.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-[9999] mt-2 border max-h-60 overflow-y-auto">
+                            {suggestions.map((s, i) => (
+                              <div key={i} className="p-3 hover:bg-gray-50 cursor-pointer text-sm flex items-center gap-3"
+                                onMouseDown={(e) => { e.preventDefault(); form.setValue("deliveryAddress", s); setSuggestions([]); setActiveField(null); }}>
+                                <MapPin className="h-4 w-4 text-gray-400 shrink-0" /><span className="truncate">{s}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors">
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-secondary" />
-                  <span className="font-bold text-sm">Partir maintenant</span>
-                </div>
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <div className="flex items-center gap-3"><Clock className="h-5 w-5 text-secondary" /><span className="font-bold text-sm">Partir maintenant</span></div>
                 <ArrowRight className="h-4 w-4 text-gray-400" />
               </div>
 
               <div className="space-y-4 pt-4 border-t border-gray-100">
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="customerName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input placeholder="Nom du destinataire" className="h-12 bg-gray-50 border-gray-100 rounded-xl" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="customerPhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input placeholder="Tél. destinataire" className="h-12 bg-gray-50 border-gray-100 rounded-xl" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <FormField control={form.control} name="customerName" render={({ field }) => (
+                    <FormItem><FormControl><Input placeholder="Nom du destinataire" className="h-12 bg-gray-50 border-gray-100 rounded-xl" {...field} data-testid="input-customer-name" /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="customerPhone" render={({ field }) => (
+                    <FormItem><FormControl><Input placeholder="Tél. destinataire" className="h-12 bg-gray-50 border-gray-100 rounded-xl" {...field} data-testid="input-customer-phone" /></FormControl><FormMessage /></FormItem>
+                  )} />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="articlePrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest">Prix Article (FC)</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="À récupérer" className="h-12 bg-gray-50 border-gray-100 rounded-xl font-black text-lg" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="deliveryFee"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest">Prix Livraison (FC)</FormLabel>
-                        <FormControl>
-                          <Input type="number" className="h-12 bg-gray-50 border-gray-100 rounded-xl font-black text-lg" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <FormField control={form.control} name="articlePrice" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest">Prix Article (FC)</FormLabel>
+                      <FormControl><Input type="number" placeholder="À récupérer" className="h-12 bg-gray-50 border-gray-100 rounded-xl font-black text-lg" {...field} data-testid="input-article-price" /></FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="deliveryFee" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest">Prix Livraison (FC)</FormLabel>
+                      <FormControl><Input type="number" className="h-12 bg-gray-50 border-gray-100 rounded-xl font-black text-lg" {...field} data-testid="input-delivery-fee" /></FormControl>
+                    </FormItem>
+                  )} />
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="w-full h-14 bg-black hover:bg-gray-800 text-white font-bold text-lg rounded-xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-              >
+              <Button type="submit" disabled={isSubmitting} className="w-full h-14 bg-black hover:bg-gray-800 text-white font-bold text-lg rounded-xl shadow-xl" data-testid="button-submit-order">
                 {isSubmitting ? "Envoi en cours..." : "Lancer la course"}
               </Button>
             </form>
@@ -460,39 +288,21 @@ export default function OrderPage() {
       </div>
 
       <div className="flex-1 relative bg-gray-100 h-[50vh] md:h-full w-full">
-         <MapContainer 
-            center={[-4.325, 15.3222]} 
-            zoom={13} 
-            scrollWheelZoom={true}
-            className="h-full w-full z-0"
-         >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            />
-            <LocationMarker activeField={activeField} onLocationSelect={handleLocationSelect} userLocation={userLocation} />
-         </MapContainer>
+        <MapContainer center={[-4.325, 15.3222]} zoom={13} scrollWheelZoom={true} className="h-full w-full z-0">
+          <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+          <LocationMarker activeField={activeField} onLocationSelect={handleLocationSelect} userLocation={userLocation} />
+        </MapContainer>
       </div>
 
       <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
         <DialogContent className="rounded-[2rem] p-8 max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-center font-black text-xl">Connexion requise</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="text-center font-black text-xl">Connexion requise</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
-            <p className="text-sm text-gray-500 text-center">Connectez-vous avec votre numéro de téléphone pour continuer</p>
-            <Input 
-              type="tel" 
-              placeholder="0812345678" 
-              value={loginPhone}
-              onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-              className="h-14 rounded-xl text-lg font-medium text-center"
-            />
-            <Button 
-              onClick={handleLoginFromDialog}
-              disabled={isLoggingIn || loginPhone.length < 9}
-              className="w-full h-14 bg-secondary text-white font-bold rounded-xl"
-            >
+            <p className="text-sm text-gray-500 text-center">Connectez-vous pour continuer</p>
+            <Input type="tel" placeholder="0812345678" value={loginPhone} onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              className="h-14 rounded-xl text-lg font-medium text-center" data-testid="input-login-phone" />
+            <Button onClick={handleLoginFromDialog} disabled={isLoggingIn || loginPhone.length < 9}
+              className="w-full h-14 bg-secondary text-white font-bold rounded-xl" data-testid="button-dialog-login">
               {isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : "Se connecter"}
             </Button>
           </div>

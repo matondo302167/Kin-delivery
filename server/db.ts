@@ -8,7 +8,7 @@ if (!connectionString) {
   throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL environment variable is not set");
 }
 
-const pool = new pg.Pool({
+export const pool = new pg.Pool({
   connectionString,
   ssl: connectionString.includes('supabase') ? { rejectUnauthorized: false } : undefined,
 });

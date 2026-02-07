@@ -7,17 +7,17 @@ export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey(),
   phoneNumber: text("phone_number").notNull(),
   fullName: text("full_name"),
-  role: text("role"),
+  role: text("role").default("temp_seller"),
   avatarUrl: text("avatar_url"),
-  isVerified: boolean("is_verified"),
+  isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
 export const deliveries = pgTable("deliveries", {
   id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
-  sellerId: uuid("seller_id").notNull().references(() => profiles.id),
-  driverId: uuid("driver_id").references(() => profiles.id),
+  sellerId: uuid("seller_id").notNull(),
+  driverId: uuid("driver_id"),
   customerName: text("customer_name").notNull(),
   customerPhone: text("customer_phone").notNull(),
   pickupAddress: text("pickup_address").notNull(),
@@ -31,7 +31,7 @@ export const deliveries = pgTable("deliveries", {
 });
 
 export const driverDetails = pgTable("driver_details", {
-  profileId: uuid("profile_id").primaryKey().references(() => profiles.id),
+  profileId: uuid("profile_id").primaryKey(),
   vehicleType: text("vehicle_type").notNull(),
   vehiclePlate: text("vehicle_plate"),
   vehicleColor: text("vehicle_color"),
@@ -40,14 +40,14 @@ export const driverDetails = pgTable("driver_details", {
 });
 
 export const driverLocations = pgTable("driver_locations", {
-  driverId: uuid("driver_id").primaryKey().references(() => profiles.id),
+  driverId: uuid("driver_id").primaryKey(),
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
 export const sellerDetails = pgTable("seller_details", {
-  profileId: uuid("profile_id").primaryKey().references(() => profiles.id),
+  profileId: uuid("profile_id").primaryKey(),
   shopName: text("shop_name").notNull(),
   businessAddress: text("business_address"),
   category: text("category"),
@@ -56,8 +56,8 @@ export const sellerDetails = pgTable("seller_details", {
 
 export const transactions = pgTable("transactions", {
   id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
-  userId: uuid("user_id").notNull().references(() => profiles.id),
-  deliveryId: uuid("delivery_id").references(() => deliveries.id),
+  userId: uuid("user_id").notNull(),
+  deliveryId: uuid("delivery_id"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).default("CDF"),
   type: text("type").notNull(),
@@ -70,6 +70,9 @@ export const transactions = pgTable("transactions", {
 export const insertProfileSchema = createInsertSchema(profiles).omit({
   createdAt: true,
   updatedAt: true,
+  isVerified: true,
+}).extend({
+  id: z.string().uuid().optional(),
 });
 
 export const insertDeliverySchema = createInsertSchema(deliveries).omit({
@@ -87,9 +90,6 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   status: true,
 });
 
-export const insertDriverDetailsSchema = createInsertSchema(driverDetails);
-export const insertSellerDetailsSchema = createInsertSchema(sellerDetails);
-
 export type Profile = typeof profiles.$inferSelect;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
 
@@ -100,9 +100,5 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 
 export type DriverDetails = typeof driverDetails.$inferSelect;
-export type InsertDriverDetails = z.infer<typeof insertDriverDetailsSchema>;
-
-export type SellerDetails = typeof sellerDetails.$inferSelect;
-export type InsertSellerDetails = z.infer<typeof insertSellerDetailsSchema>;
-
 export type DriverLocation = typeof driverLocations.$inferSelect;
+export type SellerDetails = typeof sellerDetails.$inferSelect;
