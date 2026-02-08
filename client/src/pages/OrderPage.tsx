@@ -176,11 +176,18 @@ export default function OrderPage() {
       });
       setShowPhoneDialog(false);
       toast({ title: "Connexion réussie", description: `Bienvenue ${foundProfile.fullName}!` });
+      setDialogPhone("");
+
+      if (foundProfile.role === 'driver') {
+        setPendingFormValues(null);
+        setLocation("/dashboard");
+        return;
+      }
+
       if (pendingFormValues) {
         await submitDelivery(pendingFormValues, foundProfile.id);
         setPendingFormValues(null);
       }
-      setDialogPhone("");
     } catch (error) {
       setShowPhoneDialog(false);
       setShowNameDialog(true);
