@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
-import { createDelivery, registerSeller } from "@/lib/api";
+import { createDelivery, registerSeller, getProfileByPhone } from "@/lib/api";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -70,10 +70,12 @@ export default function OrderPage() {
   const [, setLocation] = useLocation();
   const [activeField, setActiveField] = useState<'pickup' | 'delivery' | null>(null);
   const [userLocation, setUserLocation] = useState<L.LatLng | null>(null);
-  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
-  const [registerName, setRegisterName] = useState("");
-  const [registerPhone, setRegisterPhone] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [showPhoneDialog, setShowPhoneDialog] = useState(false);
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [dialogPhone, setDialogPhone] = useState("");
+  const [dialogName, setDialogName] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [pendingFormValues, setPendingFormValues] = useState<z.infer<typeof formSchema> | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -153,22 +155,48 @@ export default function OrderPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!profile || (profile.role !== 'seller')) {
       setPendingFormValues(values);
-      setShowRegisterDialog(true);
+      setShowPhoneDialog(true);
       return;
     }
     await submitDelivery(values);
   }
 
-  async function handleRegisterFromDialog() {
-    if (!registerName.trim()) { toast({ title: "Nom requis", description: "Entrez votre nom complet", variant: "destructive" }); return; }
-    if (registerPhone.length < 9) { toast({ title: "Numéro invalide", description: "Entrez un numéro valide", variant: "destructive" }); return; }
-    setIsRegistering(true);
+  async function handlePhoneCheck() {
+    if (dialogPhone.length < 9) { toast({ title: "Numéro invalide", description: "Entrez un numéro valide", variant: "destructive" }); return; }
+    setIsChecking(true);
+    try {
+      const foundProfile = await getProfileByPhone(dialogPhone);
+      const displayRole = foundProfile.role === 'driver' ? 'courier' : foundProfile.role === 'temp_seller' || foundProfile.role === 'pro_seller' ? 'seller' : 'customer';
+      setProfile({
+        id: foundProfile.id,
+        name: foundProfile.fullName || "",
+        phone: foundProfile.phoneNumber,
+        role: displayRole as any,
+        avatar: foundProfile.avatarUrl || undefined,
+      });
+      setShowPhoneDialog(false);
+      toast({ title: "Connexion réussie", description: `Bienvenue ${foundProfile.fullName}!` });
+      if (pendingFormValues) {
+        await submitDelivery(pendingFormValues, foundProfile.id);
+        setPendingFormValues(null);
+      }
+      setDialogPhone("");
+    } catch (error) {
+      setShowPhoneDialog(false);
+      setShowNameDialog(true);
+    } finally {
+      setIsChecking(false);
+    }
+  }
+
+  async function handleNameSubmit() {
+    if (!dialogName.trim()) { toast({ title: "Nom requis", description: "Entrez votre nom complet", variant: "destructive" }); return; }
+    setIsCreating(true);
     try {
       const newProfile = await registerSeller({
-        phoneNumber: registerPhone,
-        fullName: registerName,
+        phoneNumber: dialogPhone,
+        fullName: dialogName,
       });
-
       setProfile({
         id: newProfile.id,
         name: newProfile.fullName || "",
@@ -176,20 +204,18 @@ export default function OrderPage() {
         role: 'seller',
         avatar: newProfile.avatarUrl || undefined,
       });
-
-      setShowRegisterDialog(false);
-      setRegisterName("");
-      setRegisterPhone("");
+      setShowNameDialog(false);
       toast({ title: "Compte créé", description: `Bienvenue ${newProfile.fullName}!` });
-
       if (pendingFormValues) {
         await submitDelivery(pendingFormValues, newProfile.id);
         setPendingFormValues(null);
       }
+      setDialogPhone("");
+      setDialogName("");
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message || "Impossible de créer le compte", variant: "destructive" });
     } finally {
-      setIsRegistering(false);
+      setIsCreating(false);
     }
   }
 
@@ -320,24 +346,37 @@ export default function OrderPage() {
         </MapContainer>
       </div>
 
-      <Dialog open={showRegisterDialog} onOpenChange={setShowRegisterDialog}>
+      <Dialog open={showPhoneDialog} onOpenChange={setShowPhoneDialog}>
+        <DialogContent className="rounded-[2rem] p-8 max-w-sm">
+          <DialogHeader><DialogTitle className="text-center font-black text-2xl tracking-tight text-secondary">Votre numéro</DialogTitle></DialogHeader>
+          <div className="space-y-5 pt-4">
+            <p className="text-sm text-gray-500 text-center">Entrez votre numéro de téléphone pour continuer</p>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Numéro de téléphone</label>
+              <Input type="tel" placeholder="0812345678" value={dialogPhone} onChange={(e) => setDialogPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                className="h-14 rounded-xl text-lg font-medium text-center tracking-wider" data-testid="input-dialog-phone" autoFocus />
+            </div>
+            <Button onClick={handlePhoneCheck} disabled={isChecking || dialogPhone.length < 9}
+              className="w-full h-14 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl text-base" data-testid="button-dialog-phone">
+              {isChecking ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continuer"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNameDialog} onOpenChange={setShowNameDialog}>
         <DialogContent className="rounded-[2rem] p-8 max-w-sm">
           <DialogHeader><DialogTitle className="text-center font-black text-2xl tracking-tight text-secondary">Créer votre compte</DialogTitle></DialogHeader>
           <div className="space-y-5 pt-4">
-            <p className="text-sm text-gray-500 text-center">Entrez vos informations pour envoyer votre colis</p>
+            <p className="text-sm text-gray-500 text-center">Numéro non reconnu. Entrez votre nom pour créer un compte.</p>
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Nom complet</label>
-              <Input placeholder="Ex: Jean Mukendi" value={registerName} onChange={(e) => setRegisterName(e.target.value)}
-                className="h-14 rounded-xl text-lg font-medium" data-testid="input-register-name" autoFocus />
+              <Input placeholder="Ex: Jean Mukendi" value={dialogName} onChange={(e) => setDialogName(e.target.value)}
+                className="h-14 rounded-xl text-lg font-medium" data-testid="input-dialog-name" autoFocus />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Numéro de téléphone</label>
-              <Input type="tel" placeholder="0812345678" value={registerPhone} onChange={(e) => setRegisterPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                className="h-14 rounded-xl text-lg font-medium" data-testid="input-register-phone" />
-            </div>
-            <Button onClick={handleRegisterFromDialog} disabled={isRegistering || !registerName.trim() || registerPhone.length < 9}
-              className="w-full h-14 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl text-base" data-testid="button-dialog-register">
-              {isRegistering ? <Loader2 className="h-5 w-5 animate-spin" /> : "Créer mon compte et envoyer"}
+            <Button onClick={handleNameSubmit} disabled={isCreating || !dialogName.trim()}
+              className="w-full h-14 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl text-base" data-testid="button-dialog-name">
+              {isCreating ? <Loader2 className="h-5 w-5 animate-spin" /> : "Créer mon compte et envoyer"}
             </Button>
             <p className="text-[10px] text-center text-gray-400">En continuant, vous acceptez les conditions d'utilisation de KOLISA</p>
           </div>
