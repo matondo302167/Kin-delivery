@@ -135,6 +135,44 @@ export async function listTransactions(userId: string): Promise<Transaction[]> {
   return res.json();
 }
 
+export async function getDriverDetails(driverId: string): Promise<{ profileId: string; vehicleType: string; isActive: boolean; vehicleColor?: string; vehiclePlate?: string }> {
+  const res = await fetch(`${API_BASE}/driver/${driverId}/details`);
+  if (!res.ok) throw new Error("Failed to fetch driver details");
+  return res.json();
+}
+
+export async function updateDriverAvailability(driverId: string, isActive: boolean): Promise<any> {
+  const res = await fetch(`${API_BASE}/driver/${driverId}/availability`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ isActive }),
+  });
+  if (!res.ok) throw new Error("Failed to update availability");
+  return res.json();
+}
+
+export async function updateDriverLocation(driverId: string, latitude: number, longitude: number): Promise<any> {
+  const res = await fetch(`${API_BASE}/driver/${driverId}/location`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ latitude, longitude }),
+  });
+  if (!res.ok) throw new Error("Failed to update location");
+  return res.json();
+}
+
+export async function getDriverStats(driverId: string): Promise<{ totalMissions: number; deliveredCount: number; inTransitCount: number; earnings: number; cashToReturn: number }> {
+  const res = await fetch(`${API_BASE}/driver/${driverId}/stats`);
+  if (!res.ok) throw new Error("Failed to fetch driver stats");
+  return res.json();
+}
+
+export async function getDeliveryTracking(deliveryId: string): Promise<Delivery & { driverName?: string; driverPhone?: string; vehicleType?: string; vehicleColor?: string; driverAvatarUrl?: string; driverLat?: number; driverLng?: number }> {
+  const res = await fetch(`${API_BASE}/deliveries/${deliveryId}/tracking`);
+  if (!res.ok) throw new Error("Failed to fetch tracking data");
+  return res.json();
+}
+
 export async function uploadFile(file: File): Promise<{ uploadURL: string; objectPath: string }> {
   const res = await fetch("/api/uploads/request-url", {
     method: "POST",

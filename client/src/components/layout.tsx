@@ -1,26 +1,28 @@
 import { useLocation, Redirect, Link } from "wouter";
 import { useStore } from "@/lib/store";
-import { Package, Wallet, Truck, Map, LogOut, User, LayoutDashboard } from "lucide-react";
+import { Package, Wallet, Truck, Map, LogOut, User, LayoutDashboard, Send, ListOrdered } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { userRole, setRole, profile } = useStore();
+  const { userRole, setRole, profile, logout } = useStore();
 
   if (!userRole) {
     return <Redirect to="/welcome" />;
   }
 
   const handleLogout = () => {
-    setRole(null);
+    logout();
     setLocation("/welcome");
   };
 
+  const roleLabel = userRole === 'seller' ? 'Vendeur' : userRole === 'courier' ? 'Livreur' : 'Client';
+
   const sellerNav = [
-    { href: "/", icon: Package, label: "Commander" },
-    { href: "/wallet", icon: Wallet, label: "Portefeuille" },
+    { href: "/", icon: Send, label: "Envoyer" },
+    { href: "/seller-packages", icon: ListOrdered, label: "Colis" },
   ];
 
   const courierNav = [
@@ -45,7 +47,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <h1 className="text-xl font-black font-display text-secondary tracking-tight leading-none">
               KOLISA
             </h1>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">{userRole}</p>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">{roleLabel}</p>
           </div>
         </div>
 

@@ -2,12 +2,13 @@ import crypto from "crypto";
 import { db } from "./db";
 import { pool } from "./db";
 import {
-  profiles, deliveries, transactions,
+  profiles, deliveries, transactions, driverDetails, driverLocations,
   type Profile, type InsertProfile,
   type Delivery, type InsertDelivery,
   type Transaction, type InsertTransaction,
+  type DriverDetails, type DriverLocation,
 } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   getProfile(id: string): Promise<Profile | undefined>;
@@ -24,6 +25,12 @@ export interface IStorage {
 
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   listTransactions(userId: string): Promise<Transaction[]>;
+
+  getDriverDetails(driverId: string): Promise<DriverDetails | undefined>;
+  updateDriverAvailability(driverId: string, isActive: boolean): Promise<DriverDetails>;
+  updateDriverLocation(driverId: string, lat: number, lng: number): Promise<DriverLocation>;
+  getDriverLocation(driverId: string): Promise<DriverLocation | undefined>;
+  getDeliveryWithDriver(deliveryId: string): Promise<(Delivery & { driverName?: string; driverPhone?: string; vehicleType?: string; vehicleColor?: string; driverAvatarUrl?: string; driverLat?: number; driverLng?: number }) | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -167,6 +174,72 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(transactions)
       .where(eq(transactions.userId, userId))
       .orderBy(desc(transactions.createdAt));
+  }
+
+  async getDriverDetails(driverId: string): Promise<DriverDetails | undefined> {
+    const result = await db.select().from(driverDetails).where(eq(driverDetails.profileId, driverId)).limit(1);
+    return result[0];
+  }
+
+  async updateDriverAvailability(driverId: string, isActive: boolean): Promise<DriverDetails> {
+    const existing = await this.getDriverDetails(driverId);
+    if (!existing) {
+      const result = await db.insert(driverDetails).values({
+        profileId: driverId,
+        vehicleType: 'moto',
+        isActive,
+      }).returning();
+      return result[0];
+    }
+    const result = await db.update(driverDetails)
+      .set({ isActive })
+      .where(eq(driverDetails.profileId, driverId))
+      .returning();
+    return result[0];
+  }
+
+  async updateDriverLocation(driverId: string, lat: number, lng: number): Promise<DriverLocation> {
+    const existing = await this.getDriverLocation(driverId);
+    if (!existing) {
+      const result = await db.insert(driverLocations).values({
+        driverId,
+        latitude: lat,
+        longitude: lng,
+      }).returning();
+      return result[0];
+    }
+    const result = await db.update(driverLocations)
+      .set({ latitude: lat, longitude: lng, updatedAt: new Date() })
+      .where(eq(driverLocations.driverId, driverId))
+      .returning();
+    return result[0];
+  }
+
+  async getDriverLocation(driverId: string): Promise<DriverLocation | undefined> {
+    const result = await db.select().from(driverLocations).where(eq(driverLocations.driverId, driverId)).limit(1);
+    return result[0];
+  }
+
+  async getDeliveryWithDriver(deliveryId: string): Promise<(Delivery & { driverName?: string; driverPhone?: string; vehicleType?: string; vehicleColor?: string; driverAvatarUrl?: string; driverLat?: number; driverLng?: number }) | undefined> {
+    const delivery = await this.getDelivery(deliveryId);
+    if (!delivery) return undefined;
+    
+    if (!delivery.driverId) return { ...delivery };
+    
+    const driverProfile = await this.getProfile(delivery.driverId);
+    const driverDet = await this.getDriverDetails(delivery.driverId);
+    const driverLoc = await this.getDriverLocation(delivery.driverId);
+    
+    return {
+      ...delivery,
+      driverName: driverProfile?.fullName || undefined,
+      driverPhone: driverProfile?.phoneNumber || undefined,
+      vehicleType: driverDet?.vehicleType || undefined,
+      vehicleColor: driverDet?.vehicleColor || undefined,
+      driverAvatarUrl: driverProfile?.avatarUrl || undefined,
+      driverLat: driverLoc?.latitude || undefined,
+      driverLng: driverLoc?.longitude || undefined,
+    };
   }
 }
 

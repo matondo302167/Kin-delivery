@@ -1,0 +1,66 @@
+1. Le Vendeur Temporaire (User Express)
+L'objectif ici est la simplicité absolue. Il ne doit pas se sentir "obligé" de gérer un business.
+
+Accueil : Un gros bouton "Envoyer un Colis Now".
+
+Formulaire : Champs simples (Nom du client, Tel, Adresse, Prix de l'article).
+
+Suivi : Une liste simplifiée sous forme de cartes.
+
+Statut : Il ne voit pas de statistiques complexes, juste : En attente, En cours, Livré.
+
+Financier : Pas de portefeuille complexe. Il paie le livreur cash ou reçoit son argent directement du livreur.
+
+2. Le Vendeur Pro (Tableau de Bord Business)
+C'est ici que ton schéma seller_details et transactions prend tout son sens.
+
+Header : Nom de sa boutique + Badge "Vérifié".
+
+Widget Portefeuille : Affiche le Solde Disponible (issu de la fonction get_user_balance). Un bouton "Cash Out" bien visible.
+
+Stats : * Nombre de ventes du mois.
+
+Top communes de livraison (pour l'aider à savoir où sont ses clients).
+
+Gestion des Colis : Une liste détaillée avec filtre (ex: "Voir uniquement les colis non payés").
+
+Action : Possibilité de générer une étiquette ou un code QR pour le colis.
+
+3. Le Livreur (Outil de Travail)
+L'interface doit être utilisable à une main, souvent sous le soleil.
+
+Mode Service : Un switch "Disponible / Occupé" (qui met à jour driver_details.is_active).
+
+La Carte (Map) : Affiche sa position actuelle et les points de "ramassage" disponibles autour de lui.
+
+Détail Course : * Bouton GPS (ouvre Google Maps/Waze).
+
+Bouton Appel Client.
+
+Champ de saisie du Code OTP pour valider la livraison.
+
+Portefeuille Livreur :
+
+Earnings : Ses commissions accumulées.
+
+Cash to Return : Sa dette envers Kolisa (somme des article_price encaissés).
+
+4. La Page de Suivi (Public Tracking Page)
+C'est la page que le client final (celui qui achète) consulte. Elle ne nécessite pas de connexion.
+
+Visualisation : Une carte en temps réel montrant la moto avancer (via la table driver_locations).
+
+Info Livreur : Prénom, photo, type de véhicule (ex: "Erick - Moto Rouge").
+
+Timeline : 1. Colis reçu par Kolisa. 2. Livreur en route. 3. Arrivée imminente.
+
+Sécurité : Un rappel : "Ne donnez le code secret au livreur qu'après avoir reçu votre colis".
+
+5. L'Interface Administrateur (Toi, le Boss)
+Pour gérer les crises et valider les paiements.
+
+Vue Globale : Une carte avec tous les livreurs actifs (points mouvants).
+
+Alertes : Notification si un colis est en retard ou si un livreur a une dette trop élevée.
+
+Validation : Liste des demandes de "Cash Out" des vendeurs à valider manuellement (au début).

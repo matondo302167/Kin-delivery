@@ -226,6 +226,83 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to fetch transactions" });
     }
   });
+
+  app.get("/api/driver/:id/details", async (req, res) => {
+    try {
+      const details = await storage.getDriverDetails(req.params.id);
+      res.json(details || { profileId: req.params.id, vehicleType: 'moto', isActive: false });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch driver details" });
+    }
+  });
+
+  app.post("/api/driver/:id/availability", async (req, res) => {
+    try {
+      const { isActive } = req.body;
+      const details = await storage.updateDriverAvailability(req.params.id, isActive);
+      res.json(details);
+    } catch (error) {
+      console.error("Availability update error:", error);
+      res.status(500).json({ error: "Failed to update availability" });
+    }
+  });
+
+  app.post("/api/driver/:id/location", async (req, res) => {
+    try {
+      const { latitude, longitude } = req.body;
+      if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+        return res.status(400).json({ error: "Invalid coordinates" });
+      }
+      const location = await storage.updateDriverLocation(req.params.id, latitude, longitude);
+      res.json(location);
+    } catch (error) {
+      console.error("Location update error:", error);
+      res.status(500).json({ error: "Failed to update location" });
+    }
+  });
+
+  app.get("/api/driver/:id/stats", async (req, res) => {
+    try {
+      const driverId = req.params.id;
+      const [allMissions, txList] = await Promise.all([
+        storage.listDeliveries({ driverId }),
+        storage.listTransactions(driverId),
+      ]);
+      const delivered = allMissions.filter(d => d.status === 'delivered');
+      const inTransit = allMissions.filter(d => d.status === 'in_transit');
+      const earnings = txList.reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+      const cashToReturn = inTransit.reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0) + 
+        delivered.filter(d => {
+          const tx = txList.find(t => t.deliveryId === d.id);
+          return !tx;
+        }).reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0);
+      
+      res.json({
+        totalMissions: allMissions.length,
+        deliveredCount: delivered.length,
+        inTransitCount: inTransit.length,
+        earnings,
+        cashToReturn,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch driver stats" });
+    }
+  });
+
+  app.get("/api/deliveries/:id/tracking", async (req, res) => {
+    try {
+      const data = await storage.getDeliveryWithDriver(req.params.id);
+      if (!data) {
+        return res.status(404).json({ error: "Delivery not found" });
+      }
+      res.json(data);
+    } catch (error: any) {
+      if (error?.code === '22P02') {
+        return res.status(404).json({ error: "Invalid delivery ID format" });
+      }
+      res.status(500).json({ error: "Failed to fetch tracking data" });
+    }
+  });
   
   registerObjectStorageRoutes(app);
 

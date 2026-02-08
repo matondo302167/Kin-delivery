@@ -1,20 +1,19 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, Truck, CheckCircle2, Clock, ArrowLeft, MapPin } from "lucide-react";
+import { Package, Truck, CheckCircle2, Clock, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { listDeliveries } from "@/lib/api";
 import type { Delivery } from "@shared/schema";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function SellerPackagesPage() {
   const { profile } = useStore();
   const [, setLocation] = useLocation();
   const [deliveriesList, setDeliveriesList] = useState<Delivery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
 
   const loadDeliveries = async () => {
     if (!profile?.id) return;
@@ -36,70 +35,130 @@ export default function SellerPackagesPage() {
   }, [profile?.id]);
 
   const getStatusColor = (status: string | null) => {
-    switch (status) { case 'delivered': return 'bg-green-500'; case 'in_transit': return 'bg-blue-500'; default: return 'bg-yellow-500'; }
+    switch (status) { case 'delivered': return 'bg-green-500'; case 'in_transit': return 'bg-blue-500'; default: return 'bg-amber-500'; }
   };
   const getStatusLabel = (status: string | null) => {
     switch (status) { case 'delivered': return 'Livré'; case 'in_transit': return 'En cours'; default: return 'En attente'; }
   };
   const getStatusIcon = (status: string | null) => {
-    switch (status) { case 'delivered': return <CheckCircle2 className="h-4 w-4" />; case 'in_transit': return <Truck className="h-4 w-4" />; default: return <Clock className="h-4 w-4" />; }
+    switch (status) { case 'delivered': return <CheckCircle2 className="h-5 w-5" />; case 'in_transit': return <Truck className="h-5 w-5" />; default: return <Clock className="h-5 w-5" />; }
+  };
+
+  const filteredDeliveries = filter === 'all' ? deliveriesList : deliveriesList.filter(d => d.status === filter);
+  const counts = {
+    all: deliveriesList.length,
+    pending: deliveriesList.filter(d => d.status === 'pending').length,
+    in_transit: deliveriesList.filter(d => d.status === 'in_transit').length,
+    delivered: deliveriesList.filter(d => d.status === 'delivered').length,
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="bg-white sticky top-0 z-10 border-b border-gray-100 shadow-sm px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="-ml-2" data-testid="button-back"><ArrowLeft className="h-6 w-6 text-gray-800" /></Button>
-          <div>
-            <h1 className="text-xl font-black text-secondary tracking-tight">Mes Colis</h1>
-            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Historique des livraisons</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black tracking-tighter text-secondary" data-testid="text-packages-title">Mes Colis</h1>
+          <p className="text-xs text-gray-500 font-medium">{deliveriesList.length} livraison{deliveriesList.length !== 1 ? 's' : ''}</p>
         </div>
-        <Button variant="default" className="bg-secondary text-white font-black uppercase tracking-widest text-xs rounded-xl"
-          onClick={() => setLocation("/order")} data-testid="button-new-order">Nouvelle course</Button>
+        <Button
+          onClick={() => setLocation("/")}
+          className="bg-primary text-secondary hover:bg-primary/90 font-black uppercase tracking-wider text-xs rounded-xl h-10 px-5"
+          data-testid="button-new-order"
+        >
+          + Nouveau
+        </Button>
       </div>
 
-      <div className="p-6 space-y-4">
-        {isLoading ? (
-          <p className="text-center py-12 text-sm font-bold text-muted-foreground">Chargement...</p>
-        ) : deliveriesList.length === 0 ? (
-          <div className="text-center py-16 space-y-4">
-            <Package className="h-16 w-16 text-gray-300 mx-auto" />
-            <p className="text-sm font-bold text-muted-foreground uppercase">Aucun colis pour le moment</p>
-            <Button onClick={() => setLocation("/order")} className="bg-secondary text-white" data-testid="button-create-first">Créer une course</Button>
-          </div>
-        ) : (
-          deliveriesList.map(d => (
-            <Card key={d.id} className="border-none shadow-md bg-white rounded-3xl overflow-hidden" data-testid={`card-delivery-${d.id}`}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`${getStatusColor(d.status)} text-white p-2 rounded-xl`}>{getStatusIcon(d.status)}</div>
-                    <div>
-                      <h3 className="font-black text-secondary text-lg uppercase tracking-tight" data-testid={`text-name-${d.id}`}>{d.customerName}</h3>
-                      <p className="text-[10px] text-gray-500 uppercase font-bold">{d.createdAt ? format(new Date(d.createdAt), "d MMM yyyy 'à' HH:mm", { locale: fr }) : ""}</p>
-                    </div>
-                  </div>
-                  <Badge className={`${getStatusColor(d.status)} text-white text-[9px] font-black uppercase`}>{getStatusLabel(d.status)}</Badge>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-gray-700 font-medium">{d.deliveryAddress}</p>
-                  </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">#{d.id.substring(0, 8)}</div>
-                    <div className="text-right">
-                      <p className="text-lg font-black text-secondary">{parseFloat(d.deliveryFee || "0").toLocaleString()} FC</p>
-                      {parseFloat(d.articlePrice || "0") > 0 && <p className="text-[10px] text-gray-500 font-bold">+ {parseFloat(d.articlePrice || "0").toLocaleString()} FC article</p>}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {[
+          { key: 'all', label: 'Tous', count: counts.all },
+          { key: 'pending', label: 'En attente', count: counts.pending },
+          { key: 'in_transit', label: 'En cours', count: counts.in_transit },
+          { key: 'delivered', label: 'Livré', count: counts.delivered },
+        ].map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all ${
+              filter === f.key
+                ? 'bg-secondary text-white shadow-lg'
+                : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'
+            }`}
+            data-testid={`filter-${f.key}`}
+          >
+            {f.label}
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${filter === f.key ? 'bg-white/20' : 'bg-gray-100'}`}>{f.count}</span>
+          </button>
+        ))}
       </div>
+
+      {isLoading ? (
+        <div className="text-center py-16">
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-bold text-gray-400 mt-4 uppercase tracking-widest">Chargement...</p>
+        </div>
+      ) : filteredDeliveries.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16 space-y-4 bg-white rounded-3xl border border-gray-100"
+        >
+          <Package className="h-14 w-14 text-gray-200 mx-auto" />
+          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Aucun colis</p>
+          <Button onClick={() => setLocation("/")} variant="outline" className="rounded-xl font-bold" data-testid="button-create-first">
+            Envoyer un colis
+          </Button>
+        </motion.div>
+      ) : (
+        <AnimatePresence mode="popLayout">
+          <div className="space-y-3">
+            {filteredDeliveries.map((d, i) => (
+              <motion.div
+                key={d.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50 space-y-3"
+                data-testid={`card-delivery-${d.id}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`${getStatusColor(d.status)} text-white p-2 rounded-xl`}>
+                      {getStatusIcon(d.status)}
+                    </div>
+                    <div>
+                      <h3 className="font-black text-secondary text-base" data-testid={`text-name-${d.id}`}>{d.customerName}</h3>
+                      <div className="flex items-center gap-1 text-gray-400">
+                        <Phone className="h-3 w-3" />
+                        <span className="text-[11px] font-medium">{d.customerPhone}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Badge className={`${getStatusColor(d.status)} text-white text-[9px] font-black uppercase`}>
+                    {getStatusLabel(d.status)}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center gap-2 text-gray-500">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <p className="text-xs font-medium truncate">{d.deliveryAddress}</p>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">#{d.id.substring(0, 8)}</span>
+                  <div className="flex items-center gap-3">
+                    {parseFloat(d.articlePrice || "0") > 0 && (
+                      <span className="text-xs text-gray-500 font-bold">{parseFloat(d.articlePrice || "0").toLocaleString()} FC</span>
+                    )}
+                    <span className="text-sm font-black text-secondary" data-testid={`text-fee-${d.id}`}>
+                      {parseFloat(d.deliveryFee || "0").toLocaleString()} FC
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </AnimatePresence>
+      )}
     </div>
   );
 }

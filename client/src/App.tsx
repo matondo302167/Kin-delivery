@@ -39,15 +39,18 @@ function Router() {
       <Route path="/tracking" component={TrackingPage} />
       <Route path="/order" component={OrderPage} />
       
-      {/* Routes Protected by Role - For Prototype we assume if role is null, redirect to welcome */}
+      {/* Routes Protected by Role */}
       <Route path="*">
         {!userRole ? <Redirect to="/welcome" /> : (
           <Layout>
             <Switch>
+              {/* Seller routes */}
               <Route path="/" component={OrderPage} />
               <Route path="/seller-packages" component={SellerPackagesPage} />
+              {/* Courier routes */}
               <Route path="/dashboard" component={DashboardPage} />
               <Route path="/wallet" component={WalletPage} />
+              {/* Shared */}
               <Route path="/profile" component={ProfilePage} />
               <Route component={NotFound} />
             </Switch>
