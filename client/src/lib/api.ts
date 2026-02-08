@@ -14,6 +14,26 @@ export async function getProfileByPhone(phone: string): Promise<Profile> {
   return res.json();
 }
 
+export async function registerSeller(data: {
+  phoneNumber: string;
+  fullName: string;
+  shopName?: string;
+}): Promise<Profile> {
+  const res = await fetch(`${API_BASE}/register-seller`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    if (res.status === 409 && error.profile) {
+      return error.profile;
+    }
+    throw new Error(error.error || "Erreur lors de l'inscription");
+  }
+  return res.json();
+}
+
 export async function createProfile(data: {
   phoneNumber: string;
   fullName?: string;

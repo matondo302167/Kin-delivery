@@ -53,6 +53,29 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to create profile" });
     }
   });
+
+  app.post("/api/register-seller", async (req, res) => {
+    try {
+      const { phoneNumber, fullName, shopName } = req.body;
+      if (!phoneNumber || !fullName) {
+        return res.status(400).json({ error: "Nom et numéro de téléphone requis" });
+      }
+
+      const existing = await storage.getProfileByPhone(phoneNumber);
+      if (existing) {
+        return res.status(409).json({ error: "Ce numéro est déjà enregistré. Connectez-vous.", profile: existing });
+      }
+
+      const profile = await storage.createSellerWithDetails(
+        { phoneNumber, fullName, role: 'temp_seller' },
+        shopName || fullName
+      );
+      res.status(201).json(profile);
+    } catch (error) {
+      console.error("Seller registration error:", error);
+      res.status(500).json({ error: "Erreur lors de la création du compte" });
+    }
+  });
   
   app.get("/api/deliveries", async (req, res) => {
     try {
