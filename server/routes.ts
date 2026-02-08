@@ -84,6 +84,12 @@ export async function registerRoutes(
   app.post("/api/deliveries", async (req, res) => {
     try {
       const deliveryData = insertDeliverySchema.parse(req.body);
+      
+      const sellerProfile = await storage.getProfile(deliveryData.sellerId);
+      if (!sellerProfile) {
+        return res.status(400).json({ error: "Votre session a expiré. Veuillez vous reconnecter." });
+      }
+      
       const otpCode = generateOtpCode();
       
       const delivery = await storage.createDelivery({

@@ -118,6 +118,8 @@ export default function OrderPage() {
     setActiveField(null);
   };
 
+  const { logout } = useStore();
+
   async function submitDelivery(values: z.infer<typeof formSchema>, sellerId?: string) {
     setIsSubmitting(true);
     try {
@@ -134,7 +136,14 @@ export default function OrderPage() {
       form.reset();
       if (profile?.role === 'seller') setLocation("/seller-packages");
     } catch (error: any) {
-      toast({ title: "Erreur", description: error.message || "Impossible de créer la commande", variant: "destructive" });
+      const msg = error.message || "Impossible de créer la commande";
+      if (msg.includes("session") || msg.includes("reconnecter")) {
+        logout();
+        toast({ title: "Session expirée", description: "Veuillez vous reconnecter.", variant: "destructive" });
+        setLocation("/login");
+        return;
+      }
+      toast({ title: "Erreur", description: msg, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
