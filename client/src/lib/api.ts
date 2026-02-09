@@ -18,6 +18,8 @@ export async function registerSeller(data: {
   phoneNumber: string;
   fullName: string;
   shopName?: string;
+  shopAddress?: string;
+  category?: string;
 }): Promise<Profile> {
   const res = await fetch(`${API_BASE}/register-seller`, {
     method: "POST",

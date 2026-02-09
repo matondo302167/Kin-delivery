@@ -14,7 +14,7 @@ export interface IStorage {
   getProfile(id: string): Promise<Profile | undefined>;
   getProfileByPhone(phone: string): Promise<Profile | undefined>;
   createProfile(profile: InsertProfile): Promise<Profile>;
-  createSellerWithDetails(profile: InsertProfile, shopName: string): Promise<Profile>;
+  createSellerWithDetails(profile: InsertProfile, shopName: string, shopAddress?: string, category?: string): Promise<Profile>;
 
   getDelivery(id: string): Promise<Delivery | undefined>;
   listDeliveries(filters?: { status?: string; sellerId?: string; driverId?: string }): Promise<Delivery[]>;
@@ -77,7 +77,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createSellerWithDetails(profileData: InsertProfile, shopName: string): Promise<Profile> {
+  async createSellerWithDetails(profileData: InsertProfile, shopName: string, shopAddress?: string, category?: string): Promise<Profile> {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -98,9 +98,9 @@ export class DatabaseStorage implements IStorage {
       );
 
       await client.query(
-        `INSERT INTO public.seller_details (profile_id, shop_name)
-         VALUES ($1, $2)`,
-        [userId, shopName]
+        `INSERT INTO public.seller_details (profile_id, shop_name, business_address, category)
+         VALUES ($1, $2, $3, $4)`,
+        [userId, shopName, shopAddress || null, category || null]
       );
       
       await client.query('COMMIT');

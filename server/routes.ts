@@ -56,7 +56,7 @@ export async function registerRoutes(
 
   app.post("/api/register-seller", async (req, res) => {
     try {
-      const { phoneNumber, fullName, shopName } = req.body;
+      const { phoneNumber, fullName, shopName, shopAddress, category } = req.body;
       if (!phoneNumber || !fullName) {
         return res.status(400).json({ error: "Nom et numéro de téléphone requis" });
       }
@@ -68,7 +68,9 @@ export async function registerRoutes(
 
       const profile = await storage.createSellerWithDetails(
         { phoneNumber, fullName, role: 'temp_seller' },
-        shopName || fullName
+        shopName || fullName,
+        shopAddress,
+        category
       );
       res.status(201).json(profile);
     } catch (error) {

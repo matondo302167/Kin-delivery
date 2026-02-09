@@ -5,9 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Check, Truck, ShoppingBag } from "lucide-react";
-import { createProfile } from "@/lib/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Check, Truck, ShoppingBag, Store, MapPin, Tag } from "lucide-react";
+import { registerSeller, createProfile } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import kolisaLogo from "@/assets/kolisa-logo.png";
+
+const SELLER_CATEGORIES = [
+  { value: "mode", label: "Mode & Vêtements" },
+  { value: "electronique", label: "Électronique" },
+  { value: "alimentation", label: "Alimentation" },
+  { value: "beaute", label: "Beauté & Cosmétiques" },
+  { value: "maison", label: "Maison & Décoration" },
+  { value: "sante", label: "Santé & Bien-être" },
+  { value: "sport", label: "Sport & Loisirs" },
+  { value: "autre", label: "Autre" },
+];
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
@@ -18,6 +31,9 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
+    shopName: "",
+    shopAddress: "",
+    category: "",
     vehicleType: "moto",
     licensePlate: "",
   });
@@ -28,14 +44,31 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (role === 'seller' && !formData.shopName.trim()) {
+      toast({ title: "Champ requis", description: "Veuillez entrer le nom de votre boutique", variant: "destructive" });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const supabaseRole = role === 'seller' ? 'temp_seller' : 'driver';
-      const newProfile = await createProfile({
-        phoneNumber: formData.phone,
-        fullName: formData.fullName,
-        role: supabaseRole,
-      });
+      let newProfile;
+
+      if (role === 'seller') {
+        newProfile = await registerSeller({
+          phoneNumber: formData.phone,
+          fullName: formData.fullName,
+          shopName: formData.shopName,
+          shopAddress: formData.shopAddress || undefined,
+          category: formData.category || undefined,
+        });
+      } else {
+        newProfile = await createProfile({
+          phoneNumber: formData.phone,
+          fullName: formData.fullName,
+          role: 'driver',
+        });
+      }
 
       setProfile({
         id: newProfile.id,
@@ -69,7 +102,10 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-white flex flex-col md:flex-row">
       <div className="hidden md:flex md:w-1/2 bg-secondary text-white p-12 flex-col justify-between">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter mb-4">KOLISA</h1>
+          <div className="flex items-center gap-3 mb-6">
+            <img src={kolisaLogo} alt="KOLISA" className="h-10 w-10 object-contain" />
+            <h1 className="text-4xl font-black tracking-tighter">KOLISA</h1>
+          </div>
           <p className="text-white/60 font-medium">Rejoignez la révolution logistique à Kinshasa.</p>
         </div>
         <div className="space-y-6">
@@ -87,6 +123,15 @@ export default function RegisterPage() {
               <p className="text-white/60 text-sm">Travaillez quand vous voulez, où vous voulez.</p>
             </div>
           </div>
+          {role === 'seller' && (
+            <div className="flex items-start gap-4">
+              <div className="bg-primary/20 p-2 rounded-lg"><Check className="h-6 w-6 text-primary" /></div>
+              <div>
+                <h3 className="font-bold text-lg">Suivi en temps réel</h3>
+                <p className="text-white/60 text-sm">Vos clients suivent leur colis en direct.</p>
+              </div>
+            </div>
+          )}
         </div>
         <p className="text-[10px] uppercase tracking-widest text-white/40">© 2026 KOLISA RDC</p>
       </div>
@@ -124,6 +169,42 @@ export default function RegisterPage() {
               <Input id="phone" name="phone" required placeholder="08..." value={formData.phone} onChange={handleChange} className="h-12 rounded-xl" data-testid="input-phone" />
             </div>
 
+            {role === 'seller' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="shopName" className="flex items-center gap-2">
+                    <Store className="h-4 w-4 text-primary" /> Nom de la boutique *
+                  </Label>
+                  <Input id="shopName" name="shopName" required placeholder="Ex: Boutique Mama Jolie" value={formData.shopName} onChange={handleChange} className="h-12 rounded-xl" data-testid="input-shop-name" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="shopAddress" className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" /> Adresse de la boutique
+                  </Label>
+                  <Input id="shopAddress" name="shopAddress" placeholder="Ex: Avenue Kasa-Vubu, Bandalungwa" value={formData.shopAddress} onChange={handleChange} className="h-12 rounded-xl" data-testid="input-shop-address" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-primary" /> Catégorie
+                  </Label>
+                  <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
+                    <SelectTrigger className="h-12 rounded-xl" data-testid="select-category">
+                      <SelectValue placeholder="Choisissez une catégorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SELLER_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value} data-testid={`category-${cat.value}`}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+
             {role === 'courier' && (
               <>
                 <div className="space-y-2">
@@ -151,8 +232,11 @@ export default function RegisterPage() {
             </Button>
           </form>
           
-          <div className="text-center">
-             <button onClick={() => setLocation('/welcome')} className="text-sm text-gray-500 underline">Retour à l'accueil</button>
+          <div className="text-center space-y-2">
+            <p className="text-gray-500 text-sm">Déjà un compte?</p>
+            <button onClick={() => setLocation('/login')} className="text-sm font-bold text-primary underline">Se connecter</button>
+            <br />
+            <button onClick={() => setLocation('/welcome')} className="text-sm text-gray-400 underline mt-2">Retour à l'accueil</button>
           </div>
         </div>
       </div>
