@@ -169,6 +169,12 @@ export async function getDriverStats(driverId: string): Promise<{ totalMissions:
   return res.json();
 }
 
+export async function getSellerStats(sellerId: string): Promise<{ totalOrders: number; deliveredCount: number; pendingCount: number; inTransitCount: number; totalArticleRevenue: number; totalDeliveryFees: number; pendingCOD: number }> {
+  const res = await fetch(`${API_BASE}/seller/${sellerId}/stats`);
+  if (!res.ok) throw new Error("Failed to fetch seller stats");
+  return res.json();
+}
+
 export async function getDeliveryTracking(deliveryId: string): Promise<Delivery & { driverName?: string; driverPhone?: string; vehicleType?: string; vehicleColor?: string; driverAvatarUrl?: string; driverLat?: number; driverLng?: number }> {
   const res = await fetch(`${API_BASE}/deliveries/${deliveryId}/tracking`);
   if (!res.ok) throw new Error("Failed to fetch tracking data");

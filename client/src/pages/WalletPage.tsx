@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, Wallet, History, ArrowDownLeft, Truck, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, Wallet, History, ArrowDownLeft, AlertTriangle, Package, TrendingUp, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { listTransactions, getDriverStats } from "@/lib/api";
+import { listTransactions, getDriverStats, getSellerStats } from "@/lib/api";
 import type { Transaction } from "@shared/schema";
 import { motion } from "framer-motion";
 
@@ -17,8 +17,10 @@ export default function WalletPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [driverStats, setDriverStats] = useState<{ earnings: number; cashToReturn: number; deliveredCount: number } | null>(null);
+  const [sellerStats, setSellerStats] = useState<{ totalOrders: number; deliveredCount: number; pendingCount: number; inTransitCount: number; totalArticleRevenue: number; totalDeliveryFees: number; pendingCOD: number } | null>(null);
 
   const isCourier = profile?.role === 'courier';
+  const isSeller = profile?.role === 'seller';
 
   const loadData = async () => {
     if (!profile?.id) return;
@@ -29,6 +31,10 @@ export default function WalletPage() {
       if (isCourier) {
         const stats = await getDriverStats(profile.id);
         setDriverStats({ earnings: stats.earnings, cashToReturn: stats.cashToReturn, deliveredCount: stats.deliveredCount });
+      }
+      if (isSeller) {
+        const stats = await getSellerStats(profile.id);
+        setSellerStats(stats);
       }
     } catch (error) {
       console.error("Failed to load wallet data:", error);
@@ -56,8 +62,48 @@ export default function WalletPage() {
   return (
     <div className="space-y-6 pb-20">
       <h2 className="text-2xl font-black tracking-tighter text-secondary" data-testid="text-wallet-title">
-        {isCourier ? "Mes Gains" : "Portefeuille"}
+        {isCourier ? "Mes Gains" : isSeller ? "Mon Cash" : "Portefeuille"}
       </h2>
+
+      {isSeller && sellerStats && (
+        <div className="grid grid-cols-3 gap-3">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="bg-green-50 rounded-2xl p-4 border border-green-100">
+            <div className="flex items-center gap-1.5 mb-2">
+              <TrendingUp className="h-3.5 w-3.5 text-green-600" />
+              <p className="text-[9px] font-black uppercase tracking-widest text-green-600">Revenus</p>
+            </div>
+            <p className="text-xl font-black text-green-700" data-testid="text-seller-revenue">
+              {sellerStats.totalArticleRevenue.toLocaleString()} <span className="text-[10px]">FC</span>
+            </p>
+            <p className="text-[9px] text-green-600 font-medium mt-1">{sellerStats.deliveredCount} livré{sellerStats.deliveredCount !== 1 ? 's' : ''}</p>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+            className="bg-amber-50 rounded-2xl p-4 border border-amber-100">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Clock className="h-3.5 w-3.5 text-amber-600" />
+              <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">En cours</p>
+            </div>
+            <p className="text-xl font-black text-amber-700" data-testid="text-seller-pending-cod">
+              {sellerStats.pendingCOD.toLocaleString()} <span className="text-[10px]">FC</span>
+            </p>
+            <p className="text-[9px] text-amber-600 font-medium mt-1">{sellerStats.inTransitCount} en route</p>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Package className="h-3.5 w-3.5 text-blue-600" />
+              <p className="text-[9px] font-black uppercase tracking-widest text-blue-600">Colis</p>
+            </div>
+            <p className="text-xl font-black text-blue-700" data-testid="text-seller-total-orders">
+              {sellerStats.totalOrders}
+            </p>
+            <p className="text-[9px] text-blue-600 font-medium mt-1">{sellerStats.totalDeliveryFees.toLocaleString()} FC frais</p>
+          </motion.div>
+        </div>
+      )}
 
       {isCourier && driverStats && (
         <div className="grid grid-cols-2 gap-3">

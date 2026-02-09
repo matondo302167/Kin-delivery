@@ -23,6 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const sellerNav = [
     { href: "/", icon: Send, label: "Envoyer" },
     { href: "/seller-packages", icon: ListOrdered, label: "Colis" },
+    { href: "/wallet", icon: Wallet, label: "Cash" },
   ];
 
   const courierNav = [

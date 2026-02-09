@@ -291,6 +291,32 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/seller/:id/stats", async (req, res) => {
+    try {
+      const sellerId = req.params.id;
+      const allDeliveries = await storage.listDeliveries({ sellerId });
+      const delivered = allDeliveries.filter(d => d.status === 'delivered');
+      const pending = allDeliveries.filter(d => d.status === 'pending');
+      const inTransit = allDeliveries.filter(d => d.status === 'in_transit');
+
+      const totalArticleRevenue = delivered.reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0);
+      const totalDeliveryFees = allDeliveries.reduce((sum, d) => sum + parseFloat(d.deliveryFee || "0"), 0);
+      const pendingCOD = inTransit.reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0);
+
+      res.json({
+        totalOrders: allDeliveries.length,
+        deliveredCount: delivered.length,
+        pendingCount: pending.length,
+        inTransitCount: inTransit.length,
+        totalArticleRevenue,
+        totalDeliveryFees,
+        pendingCOD,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch seller stats" });
+    }
+  });
+
   app.get("/api/deliveries/:id/tracking", async (req, res) => {
     try {
       const data = await storage.getDeliveryWithDriver(req.params.id);
