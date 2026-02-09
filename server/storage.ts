@@ -49,18 +49,28 @@ export class DatabaseStorage implements IStorage {
     try {
       await client.query('BEGIN');
       
-      const userId = profileData.id || crypto.randomUUID();
-      
-      await client.query(
-        `INSERT INTO auth.users (id, instance_id, aud, role, email, phone, encrypted_password, email_confirmed_at, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
-         VALUES ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2, $3, '', NOW(), NOW(), NOW(), '', '', '', '')
-         ON CONFLICT (id) DO NOTHING`,
-        [userId, `${profileData.phoneNumber}@kolisa.app`, profileData.phoneNumber]
+      const email = `${profileData.phoneNumber}@kolisa.app`;
+      const existingAuth = await client.query(
+        `SELECT id FROM auth.users WHERE email = $1 OR phone = $2 LIMIT 1`,
+        [email, profileData.phoneNumber]
       );
+      
+      const userId = existingAuth.rows.length > 0 
+        ? existingAuth.rows[0].id 
+        : (profileData.id || crypto.randomUUID());
+      
+      if (existingAuth.rows.length === 0) {
+        await client.query(
+          `INSERT INTO auth.users (id, instance_id, aud, role, email, phone, encrypted_password, email_confirmed_at, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+           VALUES ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2, $3, '', NOW(), NOW(), NOW(), '', '', '', '')`,
+          [userId, email, profileData.phoneNumber]
+        );
+      }
       
       await client.query(
         `INSERT INTO public.profiles (id, phone_number, full_name, role, avatar_url)
          VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role
          RETURNING *`,
         [userId, profileData.phoneNumber, profileData.fullName || null, profileData.role || 'temp_seller', profileData.avatarUrl || null]
       );
@@ -82,24 +92,35 @@ export class DatabaseStorage implements IStorage {
     try {
       await client.query('BEGIN');
       
-      const userId = profileData.id || crypto.randomUUID();
-      
-      await client.query(
-        `INSERT INTO auth.users (id, instance_id, aud, role, email, phone, encrypted_password, email_confirmed_at, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
-         VALUES ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2, $3, '', NOW(), NOW(), NOW(), '', '', '', '')
-         ON CONFLICT (id) DO NOTHING`,
-        [userId, `${profileData.phoneNumber}@kolisa.app`, profileData.phoneNumber]
+      const email = `${profileData.phoneNumber}@kolisa.app`;
+      const existingAuth = await client.query(
+        `SELECT id FROM auth.users WHERE email = $1 OR phone = $2 LIMIT 1`,
+        [email, profileData.phoneNumber]
       );
+      
+      const userId = existingAuth.rows.length > 0 
+        ? existingAuth.rows[0].id 
+        : (profileData.id || crypto.randomUUID());
+      
+      if (existingAuth.rows.length === 0) {
+        await client.query(
+          `INSERT INTO auth.users (id, instance_id, aud, role, email, phone, encrypted_password, email_confirmed_at, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+           VALUES ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2, $3, '', NOW(), NOW(), NOW(), '', '', '', '')`,
+          [userId, email, profileData.phoneNumber]
+        );
+      }
       
       await client.query(
         `INSERT INTO public.profiles (id, phone_number, full_name, role, avatar_url)
-         VALUES ($1, $2, $3, $4, $5)`,
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role`,
         [userId, profileData.phoneNumber, profileData.fullName || null, profileData.role || 'temp_seller', profileData.avatarUrl || null]
       );
 
       await client.query(
         `INSERT INTO public.seller_details (profile_id, shop_name, business_address, category)
-         VALUES ($1, $2, $3, $4)`,
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (profile_id) DO UPDATE SET shop_name = EXCLUDED.shop_name, business_address = EXCLUDED.business_address, category = EXCLUDED.category`,
         [userId, shopName, shopAddress || null, category || null]
       );
       
