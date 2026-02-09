@@ -18,7 +18,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     setLocation("/welcome");
   };
 
-  const roleLabel = userRole === 'temp_seller' ? 'Vendeur' : userRole === 'pro_seller' ? 'Vendeur Pro' : userRole === 'courier' ? 'Livreur' : 'Client';
+  const isTempSeller = userRole === 'temp_seller' || userRole === 'seller';
+  const isCourier = userRole === 'courier' || userRole === 'driver';
+  const roleLabel = isTempSeller ? 'Vendeur' : userRole === 'pro_seller' ? 'Vendeur Pro' : isCourier ? 'Livreur' : 'Client';
 
   const tempSellerNav = [
     { href: "/", icon: Send, label: "Envoyer" },
@@ -26,13 +28,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   ];
 
   const proSellerNav = [
-    { href: "/pro-dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/seller-packages", icon: ListOrdered, label: "Colis" },
     { href: "/wallet", icon: Wallet, label: "Cash" },
   ];
 
   const courierNav = [
-    { href: "/dashboard", icon: Truck, label: "Missions" },
+    { href: "/", icon: Truck, label: "Missions" },
     { href: "/wallet", icon: Wallet, label: "Gains" },
   ];
 
@@ -40,7 +42,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/tracking", icon: Map, label: "Suivi" },
   ];
 
-  const navItems = userRole === 'temp_seller' ? tempSellerNav : userRole === 'pro_seller' ? proSellerNav : userRole === 'courier' ? courierNav : customerNav;
+  const navItems = isTempSeller ? tempSellerNav : userRole === 'pro_seller' ? proSellerNav : isCourier ? courierNav : customerNav;
 
   return (
     <div className="min-h-screen bg-[#FDFCF8] pb-24 font-sans selection:bg-primary/30">

@@ -47,15 +47,7 @@ export default function LoginPage() {
 
       toast({ title: "Connexion réussie", description: `Bienvenue ${profile.fullName}!` });
 
-      if (profile.role === 'driver') {
-        setLocation('/dashboard');
-      } else if (profile.role === 'pro_seller') {
-        setLocation('/pro-dashboard');
-      } else if (profile.role === 'temp_seller') {
-        setLocation('/');
-      } else {
-        setLocation('/tracking');
-      }
+      setLocation('/');
     } catch (error) {
       toast({ title: "Compte introuvable", description: "Ce numéro n'est pas enregistré. Créez un compte.", variant: "destructive" });
     } finally {

@@ -10,10 +10,20 @@ KOLISA is a last-mile delivery logistics platform designed specifically for Kins
 
 Key features include Cash on Delivery (COD) support, SMS-based PIN validation for secure delivery confirmation, real-time GPS tracking with Leaflet maps, and Mobile Money integration for payments.
 
-## Recent Changes (Feb 5, 2026)
+## Recent Changes (Feb 9, 2026)
+
+- **Temp Seller Flow Reworked**: Removed "Vendeur Express" from registration. Temp sellers are created automatically when unregistered users click "Envoyer" to send a package - phone popup → name popup → account created as temp_seller → order submitted
+- **Registration Simplified**: Only 2 roles on register page: Vendeur Pro (business) and Livreur (courier)
+- **OrderPage Enhanced**: Shows simple delivery tracking cards below send button for temp sellers (statuses: En attente, En cours, Livré). No complex wallet or stats.
+- **Routing Unified**: All roles use "/" as home route. Role-based routing in App.tsx shows correct page per role (temp_seller→OrderPage, pro_seller→ProDashboardPage, courier→DashboardPage)
+- **Public Order Route**: `/order` accessible without login for temp seller flow
+- **ProDashboardPage**: Full pro seller dashboard with shop header, wallet, stats, top communes, package filters, QR codes
+- **Driver Map**: Leaflet map on courier dashboard showing driver position and nearby pickup points
+
+## Previous Changes (Feb 5, 2026)
 
 - **Phone Login System**: Added `/login` page for phone number authentication
-- **Code Cleanup**: Removed unused files (DashboardPage-old.tsx, SellerPackagesPage-old.tsx, courier-hero.png, customer-hero.png)
+- **Code Cleanup**: Removed unused files
 - **Consistent Illustrations**: All images now use flat vector style with green/yellow KOLISA branding
 - **Navigation Fixes**: Header "Connexion" button and Details pages now properly link to login
 - **TrackingPage Fix**: Corrected map coordinates to use deliveryLat/deliveryLng fields

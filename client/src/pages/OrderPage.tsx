@@ -1,18 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
-import { createDelivery, registerSeller, getProfileByPhone } from "@/lib/api";
+import { createDelivery, registerSeller, getProfileByPhone, listDeliveries } from "@/lib/api";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, ArrowRight, Package, Loader2, Send, User, Phone, DollarSign } from "lucide-react";
+import { MapPin, ArrowRight, Package, Loader2, Send, User, Phone, DollarSign, Clock, Truck, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import type { Delivery } from "@shared/schema";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const formSchema = z.object({
   customerName: z.string().min(2, "Nom requis"),
@@ -38,6 +42,8 @@ export default function OrderPage() {
   const [pendingFormValues, setPendingFormValues] = useState<z.infer<typeof formSchema> | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [activeField, setActiveField] = useState<'pickup' | 'delivery' | null>(null);
+  const [myDeliveries, setMyDeliveries] = useState<Delivery[]>([]);
+  const [isLoadingDeliveries, setIsLoadingDeliveries] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,6 +56,25 @@ export default function OrderPage() {
       articlePrice: 0,
     },
   });
+
+  const loadDeliveries = useCallback(async () => {
+    if (!profile?.id) return;
+    try {
+      setIsLoadingDeliveries(true);
+      const deliveries = await listDeliveries({ sellerId: profile.id });
+      setMyDeliveries(deliveries);
+    } catch (error) {
+      console.error("Failed to load deliveries:", error);
+    } finally {
+      setIsLoadingDeliveries(false);
+    }
+  }, [profile?.id]);
+
+  useEffect(() => {
+    loadDeliveries();
+    const interval = setInterval(loadDeliveries, 15000);
+    return () => clearInterval(interval);
+  }, [loadDeliveries]);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -96,8 +121,10 @@ export default function OrderPage() {
       });
       toast({ title: "Colis envoyé !", description: result.message || `ID: ${result.delivery.id.substring(0, 8)}` });
       form.reset();
+      form.setValue("deliveryFee", 2500);
+      form.setValue("articlePrice", 0);
       setShowForm(false);
-      setLocation("/seller-packages");
+      await loadDeliveries();
     } catch (error: any) {
       const msg = error.message || "Impossible de créer la commande";
       if (msg.includes("session") || msg.includes("reconnecter")) {
@@ -112,8 +139,10 @@ export default function OrderPage() {
     }
   }
 
+  const isLoggedInSeller = profile && (profile.role === 'temp_seller' || profile.role === 'pro_seller' || profile.role === 'seller');
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!profile || (profile.role !== 'seller')) {
+    if (!isLoggedInSeller) {
       setPendingFormValues(values);
       setShowPhoneDialog(true);
       return;
@@ -126,12 +155,12 @@ export default function OrderPage() {
     setIsChecking(true);
     try {
       const foundProfile = await getProfileByPhone(dialogPhone);
-      const displayRole = foundProfile.role === 'driver' ? 'courier' : foundProfile.role === 'temp_seller' || foundProfile.role === 'pro_seller' ? 'seller' : 'customer';
+      const mappedRole = foundProfile.role === 'driver' ? 'courier' : foundProfile.role;
       setProfile({
         id: foundProfile.id,
         name: foundProfile.fullName || "",
         phone: foundProfile.phoneNumber,
-        role: displayRole as any,
+        role: mappedRole as any,
         avatar: foundProfile.avatarUrl || undefined,
       });
       setShowPhoneDialog(false);
@@ -139,7 +168,7 @@ export default function OrderPage() {
       setDialogPhone("");
       if (foundProfile.role === 'driver') {
         setPendingFormValues(null);
-        setLocation("/dashboard");
+        setLocation("/");
         return;
       }
       if (pendingFormValues) {
@@ -158,12 +187,12 @@ export default function OrderPage() {
     if (!dialogName.trim()) { toast({ title: "Nom requis", description: "Entrez votre nom complet", variant: "destructive" }); return; }
     setIsCreating(true);
     try {
-      const newProfile = await registerSeller({ phoneNumber: dialogPhone, fullName: dialogName });
+      const newProfile = await registerSeller({ phoneNumber: dialogPhone, fullName: dialogName, sellerType: 'temp_seller' });
       setProfile({
         id: newProfile.id,
         name: newProfile.fullName || "",
         phone: newProfile.phoneNumber,
-        role: 'seller',
+        role: 'temp_seller',
         avatar: newProfile.avatarUrl || undefined,
       });
       setShowNameDialog(false);
@@ -181,61 +210,135 @@ export default function OrderPage() {
     }
   }
 
+  const statusLabel = (status: string | null) => {
+    switch (status) {
+      case 'delivered': return 'Livré';
+      case 'in_transit': return 'En cours';
+      case 'pending': return 'En attente';
+      default: return status || 'Inconnu';
+    }
+  };
+
+  const statusIcon = (status: string | null) => {
+    switch (status) {
+      case 'delivered': return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case 'in_transit': return <Truck className="h-5 w-5 text-blue-500" />;
+      case 'pending': return <Clock className="h-5 w-5 text-amber-500" />;
+      default: return <Package className="h-5 w-5 text-gray-400" />;
+    }
+  };
+
+  const statusColor = (status: string | null) => {
+    switch (status) {
+      case 'delivered': return 'bg-green-100 text-green-700';
+      case 'in_transit': return 'bg-blue-100 text-blue-700';
+      case 'pending': return 'bg-amber-100 text-amber-700';
+      default: return 'bg-gray-100 text-gray-600';
+    }
+  };
+
   if (!showForm) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-8 px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-3"
-        >
-          <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-4">
-            <Send className="h-10 w-10 text-primary" />
-          </div>
-          <h1 className="text-3xl font-black tracking-tighter text-secondary" data-testid="text-title">
-            Envoyer un Colis
-          </h1>
-          <p className="text-gray-500 font-medium max-w-sm mx-auto">
-            Livraison rapide partout à Kinshasa. Simple et sécurisé.
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Button
-            onClick={() => setShowForm(true)}
-            className="h-16 px-12 bg-primary text-secondary hover:bg-primary/90 rounded-2xl font-black text-lg uppercase tracking-wider shadow-xl shadow-primary/30"
-            data-testid="button-send-now"
+      <div className="space-y-8 pb-20">
+        <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-8 px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-3"
           >
-            <Send className="mr-3 h-6 w-6" />
-            Envoyer Now
-          </Button>
-        </motion.div>
+            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <Send className="h-10 w-10 text-primary" />
+            </div>
+            <h1 className="text-3xl font-black tracking-tighter text-secondary" data-testid="text-title">
+              Envoyer un Colis
+            </h1>
+            <p className="text-gray-500 font-medium max-w-sm mx-auto">
+              Livraison rapide partout à Kinshasa. Simple et sécurisé.
+            </p>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="flex items-center gap-8 text-center pt-4"
-        >
-          <div className="space-y-1">
-            <p className="text-2xl font-black text-secondary">2500</p>
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">FC minimum</p>
-          </div>
-          <div className="w-px h-10 bg-gray-200" />
-          <div className="space-y-1">
-            <p className="text-2xl font-black text-secondary">30</p>
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">min en moyenne</p>
-          </div>
-          <div className="w-px h-10 bg-gray-200" />
-          <div className="space-y-1">
-            <p className="text-2xl font-black text-secondary">SMS</p>
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Suivi client</p>
-          </div>
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Button
+              onClick={() => setShowForm(true)}
+              className="h-16 px-12 bg-primary text-secondary hover:bg-primary/90 rounded-2xl font-black text-lg uppercase tracking-wider shadow-xl shadow-primary/30"
+              data-testid="button-send-now"
+            >
+              <Send className="mr-3 h-6 w-6" />
+              Envoyer Now
+            </Button>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="flex items-center gap-8 text-center pt-4"
+          >
+            <div className="space-y-1">
+              <p className="text-2xl font-black text-secondary">2500</p>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">FC minimum</p>
+            </div>
+            <div className="w-px h-10 bg-gray-200" />
+            <div className="space-y-1">
+              <p className="text-2xl font-black text-secondary">30</p>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">min en moyenne</p>
+            </div>
+            <div className="w-px h-10 bg-gray-200" />
+            <div className="space-y-1">
+              <p className="text-2xl font-black text-secondary">SMS</p>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Suivi client</p>
+            </div>
+          </motion.div>
+        </div>
+
+        {isLoggedInSeller && myDeliveries.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-3 px-1"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 flex items-center gap-2">
+                <Package className="h-3.5 w-3.5" /> Mes envois
+              </p>
+              <Badge variant="secondary" className="text-[9px] font-bold">{myDeliveries.length} colis</Badge>
+            </div>
+
+            <div className="space-y-3">
+              {myDeliveries.slice(0, 10).map((d) => (
+                <div
+                  key={d.id}
+                  className="bg-white rounded-2xl p-4 border border-gray-50 shadow-sm flex items-center gap-4"
+                  data-testid={`card-delivery-${d.id}`}
+                >
+                  <div className="shrink-0">{statusIcon(d.status)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-sm text-secondary truncate">{d.customerName}</p>
+                      <Badge className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full", statusColor(d.status))}>
+                        {statusLabel(d.status)}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{d.deliveryAddress}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      {parseFloat(d.articlePrice || "0") > 0 && (
+                        <span className="text-xs font-bold text-secondary">{parseFloat(d.articlePrice || "0").toLocaleString()} FC</span>
+                      )}
+                      <span className="text-[10px] text-gray-400">
+                        {d.createdAt ? format(new Date(d.createdAt), "dd MMM HH:mm", { locale: fr }) : ""}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
     );
   }

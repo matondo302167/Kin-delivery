@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Truck, ShoppingBag, Store, MapPin, Tag, Zap, Crown } from "lucide-react";
+import { Check, Truck, Store, MapPin, Tag, Crown } from "lucide-react";
 import { registerSeller, createProfile } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import kolisaLogo from "@/assets/kolisa-logo.png";
@@ -22,13 +22,13 @@ const SELLER_CATEGORIES = [
   { value: "autre", label: "Autre" },
 ];
 
-type RoleChoice = 'temp_seller' | 'pro_seller' | 'courier';
+type RoleChoice = 'pro_seller' | 'courier';
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
   const { setProfile } = useStore();
   const { toast } = useToast();
-  const [role, setSelectedRole] = useState<RoleChoice>('temp_seller');
+  const [role, setSelectedRole] = useState<RoleChoice>('pro_seller');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -39,8 +39,6 @@ export default function RegisterPage() {
     vehicleType: "moto",
     licensePlate: "",
   });
-
-  const isSeller = role === 'temp_seller' || role === 'pro_seller';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -58,14 +56,14 @@ export default function RegisterPage() {
     try {
       let newProfile;
 
-      if (isSeller) {
+      if (role === 'pro_seller') {
         newProfile = await registerSeller({
           phoneNumber: formData.phone,
           fullName: formData.fullName,
-          shopName: formData.shopName || formData.fullName,
+          shopName: formData.shopName,
           shopAddress: formData.shopAddress || undefined,
           category: formData.category || undefined,
-          sellerType: role,
+          sellerType: 'pro_seller',
         });
       } else {
         newProfile = await createProfile({
@@ -79,7 +77,7 @@ export default function RegisterPage() {
         id: newProfile.id,
         name: newProfile.fullName || "",
         phone: newProfile.phoneNumber,
-        role: role === 'courier' ? 'courier' : role,
+        role: role === 'courier' ? 'courier' : 'pro_seller',
       });
 
       toast({
@@ -87,13 +85,7 @@ export default function RegisterPage() {
         description: `Bienvenue ${formData.fullName}!`,
       });
 
-      if (role === 'pro_seller') {
-        setLocation('/pro-dashboard');
-      } else if (role === 'temp_seller') {
-        setLocation('/');
-      } else {
-        setLocation('/dashboard');
-      }
+      setLocation('/');
     } catch (error: any) {
       toast({
         title: "Erreur",
@@ -148,27 +140,20 @@ export default function RegisterPage() {
             <p className="text-gray-500 mt-2">Choisissez votre profil pour commencer.</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div onClick={() => setSelectedRole('temp_seller')}
-              className={`cursor-pointer p-4 rounded-2xl border-2 transition-all text-center ${role === 'temp_seller' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}
-              data-testid="role-temp-seller">
-              <Zap className={`h-7 w-7 mx-auto mb-2 ${role === 'temp_seller' ? 'text-primary' : 'text-gray-400'}`} />
-              <p className="font-bold text-xs">Express</p>
-              <p className="text-[9px] text-gray-400 mt-0.5">Envoi rapide</p>
-            </div>
+          <div className="grid grid-cols-2 gap-4">
             <div onClick={() => setSelectedRole('pro_seller')}
-              className={`cursor-pointer p-4 rounded-2xl border-2 transition-all text-center ${role === 'pro_seller' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}
+              className={`cursor-pointer p-5 rounded-2xl border-2 transition-all text-center ${role === 'pro_seller' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}
               data-testid="role-pro-seller">
-              <Crown className={`h-7 w-7 mx-auto mb-2 ${role === 'pro_seller' ? 'text-primary' : 'text-gray-400'}`} />
-              <p className="font-bold text-xs">Vendeur Pro</p>
-              <p className="text-[9px] text-gray-400 mt-0.5">Business</p>
+              <Crown className={`h-8 w-8 mx-auto mb-2 ${role === 'pro_seller' ? 'text-primary' : 'text-gray-400'}`} />
+              <p className="font-bold text-sm">Vendeur Pro</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">Boutique & business</p>
             </div>
             <div onClick={() => setSelectedRole('courier')}
-              className={`cursor-pointer p-4 rounded-2xl border-2 transition-all text-center ${role === 'courier' ? 'border-secondary bg-secondary/5' : 'border-gray-100 hover:border-gray-200'}`}
+              className={`cursor-pointer p-5 rounded-2xl border-2 transition-all text-center ${role === 'courier' ? 'border-secondary bg-secondary/5' : 'border-gray-100 hover:border-gray-200'}`}
               data-testid="role-courier">
-              <Truck className={`h-7 w-7 mx-auto mb-2 ${role === 'courier' ? 'text-secondary' : 'text-gray-400'}`} />
-              <p className="font-bold text-xs">Livreur</p>
-              <p className="text-[9px] text-gray-400 mt-0.5">Conduire</p>
+              <Truck className={`h-8 w-8 mx-auto mb-2 ${role === 'courier' ? 'text-secondary' : 'text-gray-400'}`} />
+              <p className="font-bold text-sm">Livreur</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">Conduire & livrer</p>
             </div>
           </div>
 
@@ -183,13 +168,13 @@ export default function RegisterPage() {
               <Input id="phone" name="phone" required placeholder="08..." value={formData.phone} onChange={handleChange} className="h-12 rounded-xl" data-testid="input-phone" />
             </div>
 
-            {isSeller && (
+            {role === 'pro_seller' && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="shopName" className="flex items-center gap-2">
-                    <Store className="h-4 w-4 text-primary" /> Nom de la boutique {role === 'pro_seller' ? '*' : ''}
+                    <Store className="h-4 w-4 text-primary" /> Nom de la boutique *
                   </Label>
-                  <Input id="shopName" name="shopName" required={role === 'pro_seller'} placeholder="Ex: Boutique Mama Jolie" value={formData.shopName} onChange={handleChange} className="h-12 rounded-xl" data-testid="input-shop-name" />
+                  <Input id="shopName" name="shopName" required placeholder="Ex: Boutique Mama Jolie" value={formData.shopName} onChange={handleChange} className="h-12 rounded-xl" data-testid="input-shop-name" />
                 </div>
 
                 <div className="space-y-2">

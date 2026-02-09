@@ -38,21 +38,40 @@ function Router() {
       <Route path="/product" component={ProductPage} />
       <Route path="/company" component={CompanyPage} />
       <Route path="/tracking" component={TrackingPage} />
+
       <Route path="/order" component={OrderPage} />
       
-      {/* Routes Protected by Role */}
       <Route path="*">
         {!userRole ? <Redirect to="/welcome" /> : (
           <Layout>
             <Switch>
-              {/* Seller routes */}
-              <Route path="/" component={OrderPage} />
-              <Route path="/pro-dashboard" component={ProDashboardPage} />
-              <Route path="/seller-packages" component={SellerPackagesPage} />
-              {/* Courier routes */}
-              <Route path="/dashboard" component={DashboardPage} />
-              <Route path="/wallet" component={WalletPage} />
-              {/* Shared */}
+              {userRole === 'temp_seller' && (
+                <>
+                  <Route path="/" component={OrderPage} />
+                  <Route path="/seller-packages" component={SellerPackagesPage} />
+                </>
+              )}
+              {userRole === 'pro_seller' && (
+                <>
+                  <Route path="/" component={ProDashboardPage} />
+                  <Route path="/pro-dashboard" component={ProDashboardPage} />
+                  <Route path="/seller-packages" component={SellerPackagesPage} />
+                  <Route path="/wallet" component={WalletPage} />
+                </>
+              )}
+              {(userRole === 'courier' || userRole === 'driver') && (
+                <>
+                  <Route path="/" component={DashboardPage} />
+                  <Route path="/dashboard" component={DashboardPage} />
+                  <Route path="/wallet" component={WalletPage} />
+                </>
+              )}
+              {userRole === 'seller' && (
+                <>
+                  <Route path="/" component={OrderPage} />
+                  <Route path="/seller-packages" component={SellerPackagesPage} />
+                </>
+              )}
               <Route path="/profile" component={ProfilePage} />
               <Route component={NotFound} />
             </Switch>
