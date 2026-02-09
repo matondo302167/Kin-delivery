@@ -94,7 +94,7 @@ export class DatabaseStorage implements IStorage {
       await client.query(
         `INSERT INTO public.profiles (id, phone_number, full_name, role, avatar_url)
          VALUES ($1, $2, $3, $4, $5)`,
-        [userId, profileData.phoneNumber, profileData.fullName || null, 'temp_seller', profileData.avatarUrl || null]
+        [userId, profileData.phoneNumber, profileData.fullName || null, profileData.role || 'temp_seller', profileData.avatarUrl || null]
       );
 
       await client.query(

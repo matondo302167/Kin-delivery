@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import crypto from "crypto";
 import { storage } from "./storage";
+import { pool } from "./db";
 import { insertDeliverySchema, insertProfileSchema } from "@shared/schema";
 import { z } from "zod";
 import { sendPinCodeSms, sendDeliveryConfirmationSms } from "./services/twilioService";
@@ -56,7 +57,7 @@ export async function registerRoutes(
 
   app.post("/api/register-seller", async (req, res) => {
     try {
-      const { phoneNumber, fullName, shopName, shopAddress, category } = req.body;
+      const { phoneNumber, fullName, shopName, shopAddress, category, sellerType } = req.body;
       if (!phoneNumber || !fullName) {
         return res.status(400).json({ error: "Nom et numéro de téléphone requis" });
       }
@@ -66,8 +67,9 @@ export async function registerRoutes(
         return res.status(409).json({ error: "Ce numéro est déjà enregistré. Connectez-vous.", profile: existing });
       }
 
+      const role = sellerType === 'pro_seller' ? 'pro_seller' : 'temp_seller';
       const profile = await storage.createSellerWithDetails(
-        { phoneNumber, fullName, role: 'temp_seller' },
+        { phoneNumber, fullName, role },
         shopName || fullName,
         shopAddress,
         category
@@ -288,6 +290,50 @@ export async function registerRoutes(
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch driver stats" });
+    }
+  });
+
+  app.get("/api/seller/:id/details", async (req, res) => {
+    try {
+      const sellerId = req.params.id;
+      const result = await pool.query(
+        `SELECT profile_id, shop_name, business_address, category, total_sales_count FROM public.seller_details WHERE profile_id = $1`,
+        [sellerId]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Seller details not found" });
+      }
+      const row = result.rows[0];
+      res.json({
+        profileId: row.profile_id,
+        shopName: row.shop_name,
+        businessAddress: row.business_address,
+        category: row.category,
+        totalSalesCount: row.total_sales_count,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch seller details" });
+    }
+  });
+
+  app.get("/api/seller/:id/top-communes", async (req, res) => {
+    try {
+      const sellerId = req.params.id;
+      const allDeliveries = await storage.listDeliveries({ sellerId });
+      const communeMap: Record<string, number> = {};
+      for (const d of allDeliveries) {
+        const addr = d.deliveryAddress || '';
+        const parts = addr.split(',').map(s => s.trim());
+        const commune = parts.length > 1 ? parts[parts.length - 1] : parts[0] || 'Autre';
+        communeMap[commune] = (communeMap[commune] || 0) + 1;
+      }
+      const topCommunes = Object.entries(communeMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, count]) => ({ name, count }));
+      res.json(topCommunes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch top communes" });
     }
   });
 

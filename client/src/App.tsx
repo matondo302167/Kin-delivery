@@ -15,6 +15,7 @@ import ProductPage from "@/pages/ProductPage";
 import CompanyPage from "@/pages/CompanyPage";
 import OrderPage from "@/pages/OrderPage";
 import DashboardPage from "@/pages/DashboardPage";
+import ProDashboardPage from "@/pages/ProDashboardPage";
 import WalletPage from "@/pages/WalletPage";
 import TrackingPage from "@/pages/TrackingPage";
 import ProfilePage from "@/pages/ProfilePage";
@@ -46,6 +47,7 @@ function Router() {
             <Switch>
               {/* Seller routes */}
               <Route path="/" component={OrderPage} />
+              <Route path="/pro-dashboard" component={ProDashboardPage} />
               <Route path="/seller-packages" component={SellerPackagesPage} />
               {/* Courier routes */}
               <Route path="/dashboard" component={DashboardPage} />

@@ -20,6 +20,7 @@ export async function registerSeller(data: {
   shopName?: string;
   shopAddress?: string;
   category?: string;
+  sellerType?: string;
 }): Promise<Profile> {
   const res = await fetch(`${API_BASE}/register-seller`, {
     method: "POST",
@@ -166,6 +167,12 @@ export async function updateDriverLocation(driverId: string, latitude: number, l
 export async function getDriverStats(driverId: string): Promise<{ totalMissions: number; deliveredCount: number; inTransitCount: number; earnings: number; cashToReturn: number }> {
   const res = await fetch(`${API_BASE}/driver/${driverId}/stats`);
   if (!res.ok) throw new Error("Failed to fetch driver stats");
+  return res.json();
+}
+
+export async function getSellerDetails(sellerId: string): Promise<{ profileId: string; shopName: string; businessAddress?: string; category?: string; totalSalesCount?: number }> {
+  const res = await fetch(`${API_BASE}/seller/${sellerId}/details`);
+  if (!res.ok) throw new Error("Failed to fetch seller details");
   return res.json();
 }
 

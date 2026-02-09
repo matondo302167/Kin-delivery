@@ -10,6 +10,36 @@ import { Input } from "@/components/ui/input";
 import { listDeliveries, acceptDelivery, updateDeliveryPhoto, validateDelivery, uploadFile, getDriverDetails, updateDriverAvailability, updateDriverLocation, getDriverStats } from "@/lib/api";
 import type { Delivery } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+const driverIcon = new L.Icon({
+  iconUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const pickupIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
+  shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+function MapUpdater({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center[0], center[1]]);
+  return null;
+}
 
 export default function DashboardPage() {
   const { profile } = useStore();
@@ -26,7 +56,7 @@ export default function DashboardPage() {
   const [isActive, setIsActive] = useState(false);
   const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
   const [stats, setStats] = useState({ totalMissions: 0, deliveredCount: 0, inTransitCount: 0, earnings: 0, cashToReturn: 0 });
-  const [tab, setTab] = useState<'missions' | 'wallet'>('missions');
+  const [driverPos, setDriverPos] = useState<[number, number]>([-4.3217, 15.3125]);
 
   const loadAll = useCallback(async () => {
     if (!profile?.id) return;
@@ -61,9 +91,10 @@ export default function DashboardPage() {
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
+            setDriverPos([pos.coords.latitude, pos.coords.longitude]);
             try {
               await updateDriverLocation(profile.id!, pos.coords.latitude, pos.coords.longitude);
-            } catch (e) { /* silent */ }
+            } catch (e) {}
           },
           () => {}
         );
@@ -73,6 +104,15 @@ export default function DashboardPage() {
     const interval = setInterval(sendLocation, 30000);
     return () => clearInterval(interval);
   }, [profile?.id, isActive]);
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setDriverPos([pos.coords.latitude, pos.coords.longitude]),
+        () => {}
+      );
+    }
+  }, []);
 
   const handleToggleAvailability = async () => {
     if (!profile?.id) return;
@@ -177,6 +217,42 @@ export default function DashboardPage() {
         <div className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm">
           <p className="text-2xl font-black text-amber-600" data-testid="text-cash-return">{stats.cashToReturn.toLocaleString()}</p>
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Cash à rendre</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-50 shadow-sm overflow-hidden" data-testid="driver-map">
+        <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 flex items-center gap-2">
+            <MapPin className="h-3.5 w-3.5" /> Carte
+          </p>
+          <Badge variant="secondary" className="text-[9px] font-bold">
+            {availableDeliveries.length} ramassage{availableDeliveries.length !== 1 ? 's' : ''}
+          </Badge>
+        </div>
+        <div className="h-[220px]">
+          <MapContainer center={driverPos} zoom={13} style={{ height: '100%', width: '100%' }} zoomControl={false} attributionControl={false}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <MapUpdater center={driverPos} />
+            <Marker position={driverPos} icon={driverIcon}>
+              <Popup><strong>Ma position</strong></Popup>
+            </Marker>
+            {availableDeliveries.map((d) => {
+              const parts = d.pickupAddress.split(',');
+              const lat = -4.3 + (Math.random() - 0.5) * 0.08;
+              const lng = 15.3 + (Math.random() - 0.5) * 0.08;
+              return (
+                <Marker key={d.id} position={[lat, lng]} icon={pickupIcon}>
+                  <Popup>
+                    <div className="text-xs">
+                      <strong>{d.customerName}</strong><br />
+                      {d.pickupAddress}<br />
+                      <span className="font-bold">{parseFloat(d.deliveryFee || "0").toLocaleString()} FC</span>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MapContainer>
         </div>
       </div>
 

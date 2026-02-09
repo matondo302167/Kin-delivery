@@ -30,7 +30,12 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const profile = await getProfileByPhone(phone);
-      const displayRole = profile.role === 'driver' ? 'courier' : profile.role === 'temp_seller' || profile.role === 'pro_seller' ? 'seller' : 'customer';
+      const roleMap: Record<string, string> = {
+        'driver': 'courier',
+        'temp_seller': 'temp_seller',
+        'pro_seller': 'pro_seller',
+      };
+      const displayRole = roleMap[profile.role || ''] || 'customer';
       
       setProfile({
         id: profile.id,
@@ -44,7 +49,9 @@ export default function LoginPage() {
 
       if (profile.role === 'driver') {
         setLocation('/dashboard');
-      } else if (profile.role === 'temp_seller' || profile.role === 'pro_seller') {
+      } else if (profile.role === 'pro_seller') {
+        setLocation('/pro-dashboard');
+      } else if (profile.role === 'temp_seller') {
         setLocation('/');
       } else {
         setLocation('/tracking');
