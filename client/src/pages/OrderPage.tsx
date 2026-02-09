@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, ArrowRight, Package, Loader2, Send, User, Phone, DollarSign, Clock, Truck, CheckCircle2 } from "lucide-react";
+import { MapPin, ArrowRight, Package, Loader2, Send, User, Phone, DollarSign, Clock, Truck, CheckCircle2, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -313,7 +313,8 @@ export default function OrderPage() {
               {myDeliveries.slice(0, 10).map((d) => (
                 <div
                   key={d.id}
-                  className="bg-white rounded-2xl p-4 border border-gray-50 shadow-sm flex items-center gap-4"
+                  onClick={() => setLocation(`/tracking?id=${d.id}`)}
+                  className="bg-white rounded-2xl p-4 border border-gray-50 shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-primary/20 active:scale-[0.98] transition-all"
                   data-testid={`card-delivery-${d.id}`}
                 >
                   <div className="shrink-0">{statusIcon(d.status)}</div>
@@ -334,6 +335,7 @@ export default function OrderPage() {
                       </span>
                     </div>
                   </div>
+                  <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
                 </div>
               ))}
             </div>
