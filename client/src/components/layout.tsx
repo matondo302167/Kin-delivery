@@ -29,7 +29,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const proSellerNav = [
     { href: "/", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/seller-packages", icon: ListOrdered, label: "Colis" },
+    { href: "/pro-order", icon: Send, label: "Envoyer" },
+    { href: "/seller-packages", icon: ListOrdered, label: "Suivi" },
     { href: "/wallet", icon: Wallet, label: "Cash" },
   ];
 

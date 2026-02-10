@@ -14,6 +14,7 @@ import PricingPage from "@/pages/PricingPage";
 import ProductPage from "@/pages/ProductPage";
 import CompanyPage from "@/pages/CompanyPage";
 import OrderPage from "@/pages/OrderPage";
+import ProOrderPage from "@/pages/ProOrderPage";
 import DashboardPage from "@/pages/DashboardPage";
 import ProDashboardPage from "@/pages/ProDashboardPage";
 import WalletPage from "@/pages/WalletPage";
@@ -54,7 +55,7 @@ function Router() {
               {userRole === 'pro_seller' && (
                 <>
                   <Route path="/" component={ProDashboardPage} />
-                  <Route path="/pro-dashboard" component={ProDashboardPage} />
+                  <Route path="/pro-order" component={ProOrderPage} />
                   <Route path="/seller-packages" component={SellerPackagesPage} />
                   <Route path="/wallet" component={WalletPage} />
                 </>
