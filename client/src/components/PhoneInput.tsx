@@ -3,16 +3,16 @@ import { Input } from "@/components/ui/input";
 import { ChevronDown } from "lucide-react";
 
 const COUNTRIES = [
-  { code: "+243", flag: "🇨🇩", name: "RDC", maxLen: 9 },
-  { code: "+242", flag: "🇨🇬", name: "Congo", maxLen: 9 },
-  { code: "+244", flag: "🇦🇴", name: "Angola", maxLen: 9 },
-  { code: "+250", flag: "🇷🇼", name: "Rwanda", maxLen: 9 },
+  { code: "+243", flag: "🇨🇩", name: "RDC", maxLen: 10 },
+  { code: "+242", flag: "🇨🇬", name: "Congo", maxLen: 10 },
+  { code: "+244", flag: "🇦🇴", name: "Angola", maxLen: 10 },
+  { code: "+250", flag: "🇷🇼", name: "Rwanda", maxLen: 10 },
   { code: "+256", flag: "🇺🇬", name: "Ouganda", maxLen: 10 },
   { code: "+254", flag: "🇰🇪", name: "Kenya", maxLen: 10 },
-  { code: "+255", flag: "🇹🇿", name: "Tanzanie", maxLen: 9 },
-  { code: "+257", flag: "🇧🇮", name: "Burundi", maxLen: 8 },
-  { code: "+33", flag: "🇫🇷", name: "France", maxLen: 9 },
-  { code: "+32", flag: "🇧🇪", name: "Belgique", maxLen: 9 },
+  { code: "+255", flag: "🇹🇿", name: "Tanzanie", maxLen: 10 },
+  { code: "+257", flag: "🇧🇮", name: "Burundi", maxLen: 10 },
+  { code: "+33", flag: "🇫🇷", name: "France", maxLen: 10 },
+  { code: "+32", flag: "🇧🇪", name: "Belgique", maxLen: 10 },
   { code: "+39", flag: "🇮🇹", name: "Italie", maxLen: 10 },
   { code: "+1", flag: "🇺🇸", name: "USA", maxLen: 10 },
 ];
