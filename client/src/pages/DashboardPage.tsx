@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useStore } from "@/lib/store";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, Phone, KeyRound, Camera, Navigation, MapPin, Wallet, Truck, ToggleLeft, ToggleRight } from "lucide-react";
+import { CheckCircle2, Clock, Phone, KeyRound, Camera, Navigation, MapPin, Truck, ToggleLeft, ToggleRight, Info, MessageCircle, PhoneCall, DollarSign, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -57,6 +56,11 @@ export default function DashboardPage() {
   const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
   const [stats, setStats] = useState({ totalMissions: 0, deliveredCount: 0, inTransitCount: 0, earnings: 0, cashToReturn: 0 });
   const [driverPos, setDriverPos] = useState<[number, number]>([-4.3217, 15.3125]);
+  const [vehicleType, setVehicleType] = useState<string>("moto");
+  const [detailsDelivery, setDetailsDelivery] = useState<Delivery | null>(null);
+  const [callDelivery, setCallDelivery] = useState<Delivery | null>(null);
+  const [validateDialogOpen, setValidateDialogOpen] = useState(false);
+  const [showDeliverySuccess, setShowDeliverySuccess] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!profile?.id) return;
@@ -71,6 +75,7 @@ export default function DashboardPage() {
       setAvailableDeliveries(pending);
       setMyMissions(inTransit);
       setIsActive(driverDet?.isActive ?? false);
+      setVehicleType(driverDet?.vehicleType ?? "moto");
       setStats(driverStats);
     } catch (error) {
       console.error("Failed to load:", error);
@@ -121,8 +126,8 @@ export default function DashboardPage() {
       const result = await updateDriverAvailability(profile.id, !isActive);
       setIsActive(result.isActive);
       toast({
-        title: result.isActive ? "Vous êtes en service" : "Vous êtes hors service",
-        description: result.isActive ? "Vous recevez les courses" : "Pause activée",
+        title: result.isActive ? "Vous \u00eates en service" : "Vous \u00eates hors service",
+        description: result.isActive ? "Vous recevez les courses" : "Pause activ\u00e9e",
       });
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -135,7 +140,7 @@ export default function DashboardPage() {
     if (!profile?.id) return;
     try {
       await acceptDelivery(id, profile.id);
-      toast({ title: "Mission acceptée", description: "En route pour le ramassage" });
+      toast({ title: "Mission accept\u00e9e", description: "En route pour le ramassage" });
       await loadAll();
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -150,7 +155,7 @@ export default function DashboardPage() {
         const { objectPath } = await uploadFile(file);
         await updateDeliveryPhoto(selectedDelivery.id, objectPath);
         setPhotoUrl(objectPath);
-        toast({ title: "Photo enregistrée" });
+        toast({ title: "Photo enregistr\u00e9e" });
       } catch (error: any) {
         toast({ title: "Erreur photo", description: error.message, variant: "destructive" });
       } finally {
@@ -166,8 +171,14 @@ export default function DashboardPage() {
     setIsValidating(true);
     try {
       await validateDelivery(selectedDelivery.id, otpCode, profile?.id);
-      setOtpCode(""); setPhotoUrl(""); setSelectedDelivery(null);
-      toast({ title: "Livraison validée !" });
+      setOtpCode("");
+      setPhotoUrl("");
+      setSelectedDelivery(null);
+      setValidateDialogOpen(false);
+      setShowDeliverySuccess(true);
+      setTimeout(() => {
+        setShowDeliverySuccess(false);
+      }, 3000);
       await loadAll();
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -176,13 +187,189 @@ export default function DashboardPage() {
     }
   };
 
+  const getGoogleMapsDirectionsUrl = (address: string) => {
+    let travelMode = "driving";
+    if (vehicleType === "moto" || vehicleType === "motorcycle") {
+      travelMode = "driving";
+    } else if (vehicleType === "velo" || vehicleType === "bicycle" || vehicleType === "bike") {
+      travelMode = "bicycling";
+    } else if (vehicleType === "voiture" || vehicleType === "car") {
+      travelMode = "driving";
+    }
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}&travelmode=${travelMode}`;
+  };
+
   const openGPS = (address: string) => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    const url = getGoogleMapsDirectionsUrl(address);
     window.open(url, '_blank');
+  };
+
+  const openWhatsApp = (phone: string) => {
+    const cleaned = phone.replace(/[^0-9+]/g, '');
+    const url = `https://wa.me/${cleaned.startsWith('+') ? cleaned.slice(1) : cleaned}`;
+    window.open(url, '_blank');
+    setCallDelivery(null);
+  };
+
+  const openNormalCall = (phone: string) => {
+    window.open(`tel:${phone}`);
+    setCallDelivery(null);
   };
 
   return (
     <div className="space-y-5 pb-20">
+      <AnimatePresence>
+        {showDeliverySuccess && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50"
+            onClick={() => setShowDeliverySuccess(false)}
+            data-testid="overlay-delivery-success"
+          >
+            <motion.div
+              initial={{ y: 30 }}
+              animate={{ y: 0 }}
+              className="bg-white rounded-3xl p-8 mx-6 text-center shadow-2xl max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="h-10 w-10 text-green-500" />
+              </div>
+              <h2 className="text-2xl font-black text-secondary mb-2" data-testid="text-success-title">Livraison valid\u00e9e !</h2>
+              <p className="text-sm text-gray-500 mb-5">Le colis a \u00e9t\u00e9 livr\u00e9 avec succ\u00e8s. Vous revenez \u00e0 la liste de vos courses.</p>
+              <Button
+                className="w-full h-12 rounded-2xl bg-green-500 text-white font-black uppercase tracking-widest"
+                onClick={() => setShowDeliverySuccess(false)}
+                data-testid="button-success-dismiss"
+              >
+                Retour aux courses
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Dialog open={!!detailsDelivery} onOpenChange={(open) => { if (!open) setDetailsDelivery(null); }}>
+        <DialogContent className="rounded-[2rem] p-6 max-w-[90%]" data-testid="dialog-order-details">
+          <DialogHeader>
+            <DialogTitle className="text-center font-black text-xl tracking-tight">D\u00e9tails de la commande</DialogTitle>
+          </DialogHeader>
+          {detailsDelivery && (
+            <div className="space-y-4 pt-2">
+              <div className="bg-gray-50 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="h-4 w-4 text-secondary" />
+                  <span className="text-xs font-black uppercase text-secondary">Client</span>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-gray-500">Nom</span>
+                    <span className="text-xs font-bold text-secondary" data-testid="detail-customer-name">{detailsDelivery.customerName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-gray-500">T\u00e9l\u00e9phone</span>
+                    <span className="text-xs font-bold text-secondary" data-testid="detail-customer-phone">{detailsDelivery.customerPhone}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="h-4 w-4 text-secondary" />
+                  <span className="text-xs font-black uppercase text-secondary">Adresses</span>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase">Ramassage</span>
+                    <p className="text-xs font-medium text-secondary" data-testid="detail-pickup-address">{detailsDelivery.pickupAddress}</p>
+                  </div>
+                  <div className="border-t border-gray-200 pt-2">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase">Livraison</span>
+                    <p className="text-xs font-medium text-secondary" data-testid="detail-delivery-address">{detailsDelivery.deliveryAddress}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-primary/5 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="h-4 w-4 text-secondary" />
+                  <span className="text-xs font-black uppercase text-secondary">Finances</span>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-gray-500">Prix de l'article</span>
+                    <span className="text-sm font-black text-secondary" data-testid="detail-article-price">{parseFloat(detailsDelivery.articlePrice || "0").toLocaleString()} FC</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-gray-500">Frais de livraison</span>
+                    <span className="text-sm font-black text-green-600" data-testid="detail-delivery-fee">{parseFloat(detailsDelivery.deliveryFee || "0").toLocaleString()} FC</span>
+                  </div>
+                  <div className="border-t border-primary/20 pt-2 flex justify-between">
+                    <span className="text-xs font-bold text-secondary">Total \u00e0 collecter</span>
+                    <span className="text-sm font-black text-secondary" data-testid="detail-total">
+                      {(parseFloat(detailsDelivery.articlePrice || "0") + parseFloat(detailsDelivery.deliveryFee || "0")).toLocaleString()} FC
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-2xl">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-500">Statut</span>
+                  <Badge className={`text-[9px] font-black uppercase ${
+                    detailsDelivery.status === 'delivered' ? 'bg-green-500 text-white' :
+                    detailsDelivery.status === 'in_transit' ? 'bg-blue-500 text-white' :
+                    'bg-amber-500 text-white'
+                  }`} data-testid="detail-status">
+                    {detailsDelivery.status === 'delivered' ? 'Livr\u00e9' : detailsDelivery.status === 'in_transit' ? 'En cours' : 'En attente'}
+                  </Badge>
+                </div>
+                {detailsDelivery.createdAt && (
+                  <div className="flex justify-between mt-2">
+                    <span className="text-xs text-gray-500">Date de cr\u00e9ation</span>
+                    <span className="text-xs font-medium text-secondary" data-testid="detail-created-at">
+                      {new Date(detailsDelivery.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!callDelivery} onOpenChange={(open) => { if (!open) setCallDelivery(null); }}>
+        <DialogContent className="rounded-[2rem] p-6 max-w-[85%]" data-testid="dialog-call-options">
+          <DialogHeader>
+            <DialogTitle className="text-center font-black text-lg tracking-tight">Contacter le client</DialogTitle>
+          </DialogHeader>
+          {callDelivery && (
+            <div className="space-y-3 pt-2">
+              <p className="text-xs text-gray-500 text-center">{callDelivery.customerName} - {callDelivery.customerPhone}</p>
+              <Button
+                className="w-full h-14 rounded-2xl bg-green-500 text-white font-bold text-sm flex items-center justify-center gap-3"
+                onClick={() => openWhatsApp(callDelivery.customerPhone)}
+                data-testid="button-whatsapp-call"
+              >
+                <MessageCircle className="h-5 w-5" />
+                Appeler sur WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full h-14 rounded-2xl border-gray-200 font-bold text-sm flex items-center justify-center gap-3"
+                onClick={() => openNormalCall(callDelivery.customerPhone)}
+                data-testid="button-normal-call"
+              >
+                <PhoneCall className="h-5 w-5 text-blue-500" />
+                Appel t\u00e9l\u00e9phonique
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tighter text-secondary" data-testid="text-driver-title">
@@ -208,7 +395,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm">
           <p className="text-2xl font-black text-secondary" data-testid="text-delivered-count">{stats.deliveredCount}</p>
-          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Livrées</p>
+          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Livr\u00e9es</p>
         </div>
         <div className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm">
           <p className="text-2xl font-black text-green-600" data-testid="text-earnings">{stats.earnings.toLocaleString()}</p>
@@ -216,7 +403,7 @@ export default function DashboardPage() {
         </div>
         <div className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm">
           <p className="text-2xl font-black text-amber-600" data-testid="text-cash-return">{stats.cashToReturn.toLocaleString()}</p>
-          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Cash à rendre</p>
+          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Cash \u00e0 rendre</p>
         </div>
       </div>
 
@@ -237,7 +424,6 @@ export default function DashboardPage() {
               <Popup><strong>Ma position</strong></Popup>
             </Marker>
             {availableDeliveries.map((d) => {
-              const parts = d.pickupAddress.split(',');
               const lat = -4.3 + (Math.random() - 0.5) * 0.08;
               const lng = 15.3 + (Math.random() - 0.5) * 0.08;
               return (
@@ -281,31 +467,43 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <Button
                   variant="outline"
-                  className="rounded-xl h-12 border-gray-100 font-bold text-xs"
+                  className="rounded-xl h-12 border-gray-100 font-bold text-xs flex flex-col items-center justify-center gap-0.5 p-1"
+                  onClick={() => setDetailsDelivery(d)}
+                  data-testid={`button-details-${d.id}`}
+                >
+                  <Info className="h-4 w-4 text-purple-500" />
+                  <span className="text-[9px]">D\u00e9tails</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-xl h-12 border-gray-100 font-bold text-xs flex flex-col items-center justify-center gap-0.5 p-1"
                   onClick={() => openGPS(d.deliveryAddress)}
                   data-testid={`button-gps-${d.id}`}
                 >
-                  <Navigation className="mr-1.5 h-4 w-4 text-blue-500" /> GPS
+                  <Navigation className="h-4 w-4 text-blue-500" />
+                  <span className="text-[9px]">GPS</span>
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-xl h-12 border-gray-100 font-bold text-xs"
-                  onClick={() => window.open(`tel:${d.customerPhone}`)}
+                  className="rounded-xl h-12 border-gray-100 font-bold text-xs flex flex-col items-center justify-center gap-0.5 p-1"
+                  onClick={() => setCallDelivery(d)}
                   data-testid={`button-call-${d.id}`}
                 >
-                  <Phone className="mr-1.5 h-4 w-4 text-green-500" /> Appeler
+                  <Phone className="h-4 w-4 text-green-500" />
+                  <span className="text-[9px]">Appeler</span>
                 </Button>
-                <Dialog>
+                <Dialog open={validateDialogOpen && selectedDelivery?.id === d.id} onOpenChange={(open) => { setValidateDialogOpen(open); if (!open) { setSelectedDelivery(null); } }}>
                   <DialogTrigger asChild>
                     <Button
-                      className="rounded-xl bg-primary text-secondary h-12 shadow-lg shadow-primary/20 font-bold text-xs"
-                      onClick={() => { setSelectedDelivery(d); setPhotoUrl(d.proofImageUrl || ""); }}
+                      className="rounded-xl bg-primary text-secondary h-12 shadow-lg shadow-primary/20 font-bold text-xs flex flex-col items-center justify-center gap-0.5 p-1"
+                      onClick={() => { setSelectedDelivery(d); setPhotoUrl(d.proofImageUrl || ""); setValidateDialogOpen(true); }}
                       data-testid={`button-validate-${d.id}`}
                     >
-                      <CheckCircle2 className="mr-1.5 h-4 w-4" /> Valider
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span className="text-[9px]">Valider</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="rounded-[2rem] p-6 max-w-[90%]">
@@ -323,15 +521,15 @@ export default function DashboardPage() {
                         </div>
                         <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
                         <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full rounded-xl" disabled={isUploading} data-testid="button-upload-photo">
-                          {isUploading ? "Upload..." : photoUrl ? "Photo ajoutée ✓" : "Prendre une photo"}
+                          {isUploading ? "Upload..." : photoUrl ? "Photo ajout\u00e9e \u2713" : "Prendre une photo"}
                         </Button>
                       </div>
 
                       <div className="bg-primary/5 p-4 rounded-2xl border border-dashed border-primary/20">
                         <KeyRound className="h-6 w-6 text-primary mx-auto mb-2" />
                         <p className="text-[10px] font-black uppercase text-secondary text-center mb-1">Code OTP Client</p>
-                        <p className="text-[9px] font-bold text-gray-400 text-center mb-3">Code 6 chiffres reçu par le client</p>
-                        <Input type="text" inputMode="numeric" maxLength={6} placeholder="••••••" value={otpCode}
+                        <p className="text-[9px] font-bold text-gray-400 text-center mb-3">Code 6 chiffres re\u00e7u par le client</p>
+                        <Input type="text" inputMode="numeric" maxLength={6} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022" value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                           className="text-center text-3xl h-16 font-black tracking-[0.5em] border-0 bg-white rounded-xl" data-testid="input-otp-code" />
                       </div>
@@ -364,7 +562,7 @@ export default function DashboardPage() {
           <div className="text-center py-12 bg-white rounded-2xl border border-gray-50">
             <Truck className="h-12 w-12 text-gray-200 mx-auto mb-3" />
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Aucune course disponible</p>
-            <p className="text-[10px] text-gray-400 mt-1">Les nouvelles courses apparaîtront ici</p>
+            <p className="text-[10px] text-gray-400 mt-1">Les nouvelles courses appara\u00eetront ici</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -386,7 +584,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-1 text-gray-400 mt-0.5">
                       <MapPin className="h-3 w-3" />
                       <p className="text-[10px] font-medium truncate max-w-[200px]">{d.pickupAddress.split(',')[0]}</p>
-                      <span className="text-[10px]">→</span>
+                      <span className="text-[10px]">\u2192</span>
                       <p className="text-[10px] font-medium truncate max-w-[200px]">{d.deliveryAddress.split(',')[0]}</p>
                     </div>
                   </div>
