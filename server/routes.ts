@@ -199,14 +199,28 @@ export async function registerRoutes(
       
       const updatedDelivery = await storage.updateDeliveryStatus(req.params.id, 'delivered');
       
+      const deliveryFee = parseFloat(delivery.deliveryFee || "0");
+      const articlePrice = parseFloat(delivery.articlePrice || "0");
+
       if (delivery.sellerId) {
-        const totalAmount = parseFloat(delivery.deliveryFee || "0") + parseFloat(delivery.articlePrice || "0");
+        const totalAmount = deliveryFee + articlePrice;
         await storage.createTransaction({
           userId: delivery.sellerId,
           deliveryId: delivery.id,
           amount: totalAmount.toString(),
           type: 'delivery_earning',
           description: `Livraison ${delivery.id.substring(0, 8)} - Paiement`,
+        });
+      }
+
+      const actualDriverId = driverId || delivery.driverId;
+      if (actualDriverId && deliveryFee > 0) {
+        await storage.createTransaction({
+          userId: actualDriverId,
+          deliveryId: delivery.id,
+          amount: deliveryFee.toString(),
+          type: 'driver_earning',
+          description: `Commission livraison ${delivery.id.substring(0, 8)}`,
         });
       }
       

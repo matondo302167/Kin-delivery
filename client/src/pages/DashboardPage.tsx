@@ -115,7 +115,18 @@ export default function DashboardPage() {
     if (otpCode.length !== 6) { toast({ title: "Code OTP invalide", description: "Le code doit contenir 6 chiffres", variant: "destructive" }); return; }
     setIsValidating(true);
     try {
-      await validateDelivery(selectedDelivery.id, otpCode, profile?.id);
+      const validatedId = selectedDelivery.id;
+      const validatedDelivery = { ...selectedDelivery, status: 'delivered' as const };
+      await validateDelivery(validatedId, otpCode, profile?.id);
+      setMyMissions(prev => prev.filter(m => m.id !== validatedId));
+      setDeliveredMissions(prev => [validatedDelivery, ...prev]);
+      const fee = parseFloat(selectedDelivery.deliveryFee || "0");
+      setStats(prev => ({
+        ...prev,
+        deliveredCount: prev.deliveredCount + 1,
+        inTransitCount: Math.max(0, prev.inTransitCount - 1),
+        earnings: prev.earnings + fee,
+      }));
       setOtpCode("");
       setPhotoUrl("");
       setSelectedDelivery(null);
@@ -124,7 +135,7 @@ export default function DashboardPage() {
       setTimeout(() => {
         setShowDeliverySuccess(false);
       }, 3000);
-      await loadAll();
+      loadAll();
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } finally {
