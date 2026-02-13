@@ -2,43 +2,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, Phone, KeyRound, Camera, Navigation, MapPin, Truck, ToggleLeft, ToggleRight, Info, MessageCircle, PhoneCall, DollarSign, User } from "lucide-react";
+import { CheckCircle2, Clock, Phone, KeyRound, Camera, Navigation, MapPin, Truck, ToggleLeft, ToggleRight, Info, MessageCircle, PhoneCall, DollarSign, User, ChevronUp, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { listDeliveries, acceptDelivery, updateDeliveryPhoto, validateDelivery, uploadFile, getDriverDetails, updateDriverAvailability, updateDriverLocation, getDriverStats } from "@/lib/api";
+import { listDeliveries, acceptDelivery, updateDeliveryPhoto, validateDelivery, uploadFile, getDriverDetails, updateDriverAvailability, getDriverStats } from "@/lib/api";
 import type { Delivery } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
-const driverIcon = new L.Icon({
-  iconUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-const pickupIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
-  shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-function MapUpdater({ center }: { center: [number, number] }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, map.getZoom());
-  }, [center[0], center[1]]);
-  return null;
-}
 
 export default function DashboardPage() {
   const { profile } = useStore();
@@ -51,29 +21,33 @@ export default function DashboardPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [availableDeliveries, setAvailableDeliveries] = useState<Delivery[]>([]);
   const [myMissions, setMyMissions] = useState<Delivery[]>([]);
+  const [deliveredMissions, setDeliveredMissions] = useState<Delivery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActive, setIsActive] = useState(false);
   const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
   const [stats, setStats] = useState({ totalMissions: 0, deliveredCount: 0, inTransitCount: 0, earnings: 0, cashToReturn: 0 });
-  const [driverPos, setDriverPos] = useState<[number, number]>([-4.3217, 15.3125]);
   const [vehicleType, setVehicleType] = useState<string>("moto");
   const [detailsDelivery, setDetailsDelivery] = useState<Delivery | null>(null);
   const [callDelivery, setCallDelivery] = useState<Delivery | null>(null);
   const [validateDialogOpen, setValidateDialogOpen] = useState(false);
   const [showDeliverySuccess, setShowDeliverySuccess] = useState(false);
+  const [showDeliveredList, setShowDeliveredList] = useState(false);
+  const [showEarningsDetail, setShowEarningsDetail] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!profile?.id) return;
     try {
       setIsLoading(true);
-      const [pending, inTransit, driverDet, driverStats] = await Promise.all([
+      const [pending, inTransit, delivered, driverDet, driverStats] = await Promise.all([
         listDeliveries({ status: "pending" }),
         listDeliveries({ driverId: profile.id, status: "in_transit" }),
+        listDeliveries({ driverId: profile.id, status: "delivered" }),
         getDriverDetails(profile.id),
         getDriverStats(profile.id),
       ]);
       setAvailableDeliveries(pending);
       setMyMissions(inTransit);
+      setDeliveredMissions(delivered);
       setIsActive(driverDet?.isActive ?? false);
       setVehicleType(driverDet?.vehicleType ?? "moto");
       setStats(driverStats);
@@ -89,35 +63,6 @@ export default function DashboardPage() {
     const interval = setInterval(loadAll, 10000);
     return () => clearInterval(interval);
   }, [loadAll]);
-
-  useEffect(() => {
-    if (!profile?.id || !isActive) return;
-    const sendLocation = () => {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            setDriverPos([pos.coords.latitude, pos.coords.longitude]);
-            try {
-              await updateDriverLocation(profile.id!, pos.coords.latitude, pos.coords.longitude);
-            } catch (e) {}
-          },
-          () => {}
-        );
-      }
-    };
-    sendLocation();
-    const interval = setInterval(sendLocation, 30000);
-    return () => clearInterval(interval);
-  }, [profile?.id, isActive]);
-
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setDriverPos([pos.coords.latitude, pos.coords.longitude]),
-        () => {}
-      );
-    }
-  }, []);
 
   const handleToggleAvailability = async () => {
     if (!profile?.id) return;
@@ -189,25 +134,19 @@ export default function DashboardPage() {
 
   const getGoogleMapsDirectionsUrl = (address: string) => {
     let travelMode = "driving";
-    if (vehicleType === "moto" || vehicleType === "motorcycle") {
-      travelMode = "driving";
-    } else if (vehicleType === "velo" || vehicleType === "bicycle" || vehicleType === "bike") {
+    if (vehicleType === "velo" || vehicleType === "bicycle" || vehicleType === "bike") {
       travelMode = "bicycling";
-    } else if (vehicleType === "voiture" || vehicleType === "car") {
-      travelMode = "driving";
     }
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}&travelmode=${travelMode}`;
   };
 
   const openGPS = (address: string) => {
-    const url = getGoogleMapsDirectionsUrl(address);
-    window.open(url, '_blank');
+    window.open(getGoogleMapsDirectionsUrl(address), '_blank');
   };
 
   const openWhatsApp = (phone: string) => {
     const cleaned = phone.replace(/[^0-9+]/g, '');
-    const url = `https://wa.me/${cleaned.startsWith('+') ? cleaned.slice(1) : cleaned}`;
-    window.open(url, '_blank');
+    window.open(`https://wa.me/${cleaned.startsWith('+') ? cleaned.slice(1) : cleaned}`, '_blank');
     setCallDelivery(null);
   };
 
@@ -370,6 +309,45 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={showEarningsDetail} onOpenChange={setShowEarningsDetail}>
+        <DialogContent className="rounded-[2rem] p-6 max-w-[90%] max-h-[80vh] overflow-y-auto" data-testid="dialog-earnings-detail">
+          <DialogHeader>
+            <DialogTitle className="text-center font-black text-xl tracking-tight">D\u00e9tail des gains</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div className="bg-green-50 p-4 rounded-2xl text-center">
+              <p className="text-[10px] font-black uppercase text-green-600 tracking-widest mb-1">Total des gains</p>
+              <p className="text-3xl font-black text-green-600" data-testid="earnings-total">{stats.earnings.toLocaleString()} FC</p>
+              <p className="text-xs text-gray-500 mt-1">{deliveredMissions.length} livraison{deliveredMissions.length !== 1 ? 's' : ''} effectu\u00e9e{deliveredMissions.length !== 1 ? 's' : ''}</p>
+            </div>
+            {deliveredMissions.length === 0 ? (
+              <div className="text-center py-8">
+                <Package className="h-10 w-10 text-gray-200 mx-auto mb-2" />
+                <p className="text-xs text-gray-400 font-bold">Aucune livraison pour le moment</p>
+              </div>
+            ) : (
+              deliveredMissions.map(d => (
+                <div
+                  key={d.id}
+                  className="bg-white rounded-2xl p-4 border border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => { setShowEarningsDetail(false); setDetailsDelivery(d); }}
+                  data-testid={`earnings-item-${d.id}`}
+                >
+                  <div>
+                    <p className="text-sm font-bold text-secondary">{d.customerName}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{d.deliveryAddress.split(',')[0]}</p>
+                    {d.createdAt && (
+                      <p className="text-[10px] text-gray-400">{new Date(d.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</p>
+                    )}
+                  </div>
+                  <p className="text-sm font-black text-green-600">+{parseFloat(d.deliveryFee || "0").toLocaleString()} FC</p>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tighter text-secondary" data-testid="text-driver-title">
@@ -393,52 +371,25 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm">
+        <div
+          className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm cursor-pointer hover:border-green-100 transition-colors"
+          onClick={() => setShowDeliveredList(!showDeliveredList)}
+          data-testid="card-delivered"
+        >
           <p className="text-2xl font-black text-secondary" data-testid="text-delivered-count">{stats.deliveredCount}</p>
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Livr\u00e9es</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm">
+        <div
+          className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm cursor-pointer hover:border-green-100 transition-colors"
+          onClick={() => setShowEarningsDetail(true)}
+          data-testid="card-earnings"
+        >
           <p className="text-2xl font-black text-green-600" data-testid="text-earnings">{stats.earnings.toLocaleString()}</p>
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Gains FC</p>
         </div>
         <div className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm">
           <p className="text-2xl font-black text-amber-600" data-testid="text-cash-return">{stats.cashToReturn.toLocaleString()}</p>
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Cash \u00e0 rendre</p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl border border-gray-50 shadow-sm overflow-hidden" data-testid="driver-map">
-        <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5" /> Carte
-          </p>
-          <Badge variant="secondary" className="text-[9px] font-bold">
-            {availableDeliveries.length} ramassage{availableDeliveries.length !== 1 ? 's' : ''}
-          </Badge>
-        </div>
-        <div className="h-[220px]">
-          <MapContainer center={driverPos} zoom={13} style={{ height: '100%', width: '100%' }} zoomControl={false} attributionControl={false}>
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <MapUpdater center={driverPos} />
-            <Marker position={driverPos} icon={driverIcon}>
-              <Popup><strong>Ma position</strong></Popup>
-            </Marker>
-            {availableDeliveries.map((d) => {
-              const lat = -4.3 + (Math.random() - 0.5) * 0.08;
-              const lng = 15.3 + (Math.random() - 0.5) * 0.08;
-              return (
-                <Marker key={d.id} position={[lat, lng]} icon={pickupIcon}>
-                  <Popup>
-                    <div className="text-xs">
-                      <strong>{d.customerName}</strong><br />
-                      {d.pickupAddress}<br />
-                      <span className="font-bold">{parseFloat(d.deliveryFee || "0").toLocaleString()} FC</span>
-                    </div>
-                  </Popup>
-                </Marker>
-              );
-            })}
-          </MapContainer>
         </div>
       </div>
 
@@ -549,6 +500,60 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+
+      <AnimatePresence>
+        {showDeliveredList && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-3 overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">
+                Colis livr\u00e9s ({deliveredMissions.length})
+              </h3>
+              <button onClick={() => setShowDeliveredList(false)} className="text-gray-400">
+                <ChevronUp className="h-4 w-4" />
+              </button>
+            </div>
+            {deliveredMissions.length === 0 ? (
+              <div className="text-center py-8 bg-white rounded-2xl border border-gray-50">
+                <Package className="h-10 w-10 text-gray-200 mx-auto mb-2" />
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Aucun colis livr\u00e9</p>
+              </div>
+            ) : (
+              deliveredMissions.map(d => (
+                <motion.div
+                  key={d.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-2xl p-4 shadow-sm border border-green-50 flex justify-between items-center cursor-pointer hover:bg-green-50/50 transition-colors"
+                  onClick={() => setDetailsDelivery(d)}
+                  data-testid={`card-delivered-${d.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-secondary">{d.customerName}</p>
+                      <p className="text-[10px] text-gray-400">{d.deliveryAddress.split(',')[0]}</p>
+                      {d.createdAt && (
+                        <p className="text-[10px] text-gray-400">{new Date(d.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge className="bg-green-500 text-white text-[9px] font-black uppercase mb-1">Livr\u00e9</Badge>
+                    <p className="text-sm font-black text-green-600">{parseFloat(d.deliveryFee || "0").toLocaleString()} FC</p>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="space-y-3">
         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 px-1">
