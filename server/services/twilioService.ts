@@ -11,6 +11,20 @@ function getTwilioClient() {
   return twilio(accountSid, authToken);
 }
 
+function formatPhoneNumber(phone: string): string {
+  let formatted = phone.trim();
+  if (formatted.startsWith('+')) {
+    return formatted;
+  }
+  if (formatted.startsWith('00')) {
+    return '+' + formatted.substring(2);
+  }
+  if (formatted.startsWith('0')) {
+    return '+243' + formatted.substring(1);
+  }
+  return '+' + formatted;
+}
+
 export interface SendSmsResult {
   success: boolean;
   messageId?: string;
@@ -25,16 +39,7 @@ export async function sendPinCodeSms(
   try {
     const client = getTwilioClient();
 
-    let formattedPhone = recipientPhone.trim();
-    if (!formattedPhone.startsWith('+')) {
-      if (formattedPhone.startsWith('0')) {
-        formattedPhone = '+243' + formattedPhone.substring(1);
-      } else if (formattedPhone.startsWith('243')) {
-        formattedPhone = '+' + formattedPhone;
-      } else {
-        formattedPhone = '+243' + formattedPhone;
-      }
-    }
+    const formattedPhone = formatPhoneNumber(recipientPhone);
 
     const message = `KOLISA Livraison\n\nVotre colis arrive!\n\nCode PIN: ${pinCode}\n\nSuivi: ${trackingToken}\n\nPrésentez ce code au livreur.`;
 
@@ -65,16 +70,7 @@ export async function sendDeliveryConfirmationSms(
   try {
     const client = getTwilioClient();
 
-    let formattedPhone = recipientPhone.trim();
-    if (!formattedPhone.startsWith('+')) {
-      if (formattedPhone.startsWith('0')) {
-        formattedPhone = '+243' + formattedPhone.substring(1);
-      } else if (formattedPhone.startsWith('243')) {
-        formattedPhone = '+' + formattedPhone;
-      } else {
-        formattedPhone = '+243' + formattedPhone;
-      }
-    }
+    const formattedPhone = formatPhoneNumber(recipientPhone);
 
     const message = `KOLISA Livraison\n\nVotre colis a été livré avec succès!\n\nSuivi: ${trackingToken}\n\nMerci d'avoir utilisé KOLISA.`;
 

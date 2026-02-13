@@ -527,7 +527,7 @@ export default function OrderPage() {
             ) : (
               <>
                 <p className="text-sm text-gray-500 text-center">
-                  Entrez le code envoyé au <span className="font-bold text-secondary">+243 {dialogPhone}</span>
+                  Entrez le code envoyé au <span className="font-bold text-secondary">{dialogPhone}</span>
                 </p>
                 <div className="flex justify-center">
                   <InputOTP maxLength={6} value={dialogOtpCode} onChange={setDialogOtpCode} data-testid="input-dialog-otp">

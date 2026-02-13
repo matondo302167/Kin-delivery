@@ -291,7 +291,7 @@ export default function RegisterPage() {
           </DialogHeader>
           <div className="space-y-5 pt-4">
             <p className="text-sm text-gray-500 text-center">
-              Entrez le code à 6 chiffres envoyé au <span className="font-bold text-secondary">+243 {formData.phone}</span>
+              Entrez le code à 6 chiffres envoyé au <span className="font-bold text-secondary">{formData.phone}</span>
             </p>
             <div className="flex justify-center">
               <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode} data-testid="input-register-otp">
