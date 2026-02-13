@@ -13,6 +13,7 @@ const COUNTRIES = [
   { code: "+257", flag: "🇧🇮", name: "Burundi", maxLen: 8 },
   { code: "+33", flag: "🇫🇷", name: "France", maxLen: 9 },
   { code: "+32", flag: "🇧🇪", name: "Belgique", maxLen: 9 },
+  { code: "+39", flag: "🇮🇹", name: "Italie", maxLen: 10 },
   { code: "+1", flag: "🇺🇸", name: "USA", maxLen: 10 },
 ];
 
