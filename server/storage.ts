@@ -2,13 +2,14 @@ import crypto from "crypto";
 import { db } from "./db";
 import { pool } from "./db";
 import {
-  profiles, deliveries, transactions, driverDetails, driverLocations,
+  profiles, deliveries, transactions, driverDetails, driverLocations, cashoutRequests, otpVerifications,
   type Profile, type InsertProfile,
   type Delivery, type InsertDelivery,
   type Transaction, type InsertTransaction,
   type DriverDetails, type DriverLocation,
+  type CashoutRequest, type InsertCashoutRequest,
 } from "@shared/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, gt } from "drizzle-orm";
 
 export interface IStorage {
   getProfile(id: string): Promise<Profile | undefined>;
@@ -31,6 +32,17 @@ export interface IStorage {
   updateDriverLocation(driverId: string, lat: number, lng: number): Promise<DriverLocation>;
   getDriverLocation(driverId: string): Promise<DriverLocation | undefined>;
   getDeliveryWithDriver(deliveryId: string): Promise<(Delivery & { driverName?: string; driverPhone?: string; vehicleType?: string; vehicleColor?: string; driverAvatarUrl?: string; driverLat?: number; driverLng?: number }) | undefined>;
+
+  createCashoutRequest(request: InsertCashoutRequest): Promise<CashoutRequest>;
+  listCashoutRequests(filters?: { userId?: string; status?: string }): Promise<CashoutRequest[]>;
+  updateCashoutStatus(id: string, status: string, adminNote?: string): Promise<CashoutRequest>;
+
+  createOtpVerification(phoneNumber: string, otpCode: string): Promise<void>;
+  verifyOtp(phoneNumber: string, otpCode: string): Promise<boolean>;
+  markPhoneVerified(phoneNumber: string): Promise<void>;
+
+  listAllDriverLocations(): Promise<(DriverLocation & { driverName?: string; isActive?: boolean })[]>;
+  listAllProfiles(): Promise<Profile[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -265,6 +277,80 @@ export class DatabaseStorage implements IStorage {
       driverLat: driverLoc?.latitude || undefined,
       driverLng: driverLoc?.longitude || undefined,
     };
+  }
+  async createCashoutRequest(request: InsertCashoutRequest): Promise<CashoutRequest> {
+    const result = await db.insert(cashoutRequests).values(request).returning();
+    return result[0];
+  }
+
+  async listCashoutRequests(filters?: { userId?: string; status?: string }): Promise<CashoutRequest[]> {
+    const conditions = [];
+    if (filters?.userId) {
+      conditions.push(eq(cashoutRequests.userId, filters.userId));
+    }
+    if (filters?.status) {
+      conditions.push(eq(cashoutRequests.status, filters.status));
+    }
+    let query = db.select().from(cashoutRequests);
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    return query.orderBy(desc(cashoutRequests.createdAt));
+  }
+
+  async updateCashoutStatus(id: string, status: string, adminNote?: string): Promise<CashoutRequest> {
+    const result = await db.update(cashoutRequests)
+      .set({ status, adminNote: adminNote || null, resolvedAt: new Date() })
+      .where(eq(cashoutRequests.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async createOtpVerification(phoneNumber: string, otpCode: string): Promise<void> {
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await db.insert(otpVerifications).values({ phoneNumber, otpCode, expiresAt });
+  }
+
+  async verifyOtp(phoneNumber: string, otpCode: string): Promise<boolean> {
+    const result = await db.select().from(otpVerifications)
+      .where(and(
+        eq(otpVerifications.phoneNumber, phoneNumber),
+        eq(otpVerifications.otpCode, otpCode),
+        eq(otpVerifications.verified, false),
+        gt(otpVerifications.expiresAt, new Date())
+      ))
+      .orderBy(desc(otpVerifications.createdAt))
+      .limit(1);
+    if (result.length === 0) return false;
+    await db.update(otpVerifications)
+      .set({ verified: true })
+      .where(eq(otpVerifications.id, result[0].id));
+    return true;
+  }
+
+  async markPhoneVerified(phoneNumber: string): Promise<void> {
+    await db.update(profiles)
+      .set({ isVerified: true })
+      .where(eq(profiles.phoneNumber, phoneNumber));
+  }
+
+  async listAllDriverLocations(): Promise<(DriverLocation & { driverName?: string; isActive?: boolean })[]> {
+    const locations = await db.select().from(driverLocations);
+    const result = [];
+    for (const loc of locations) {
+      const profile = await this.getProfile(loc.driverId);
+      const details = await this.getDriverDetails(loc.driverId);
+      result.push({
+        ...loc,
+        driverName: profile?.fullName || undefined,
+        isActive: details?.isActive ?? false,
+      });
+    }
+    return result;
+  }
+
+  async listAllProfiles(): Promise<Profile[]> {
+    return db.select().from(profiles).orderBy(desc(profiles.createdAt));
   }
 }
 

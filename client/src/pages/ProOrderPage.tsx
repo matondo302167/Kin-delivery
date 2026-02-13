@@ -8,6 +8,7 @@ import { createDelivery, listDeliveries, getSellerDetails } from "@/lib/api";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import PhoneInput from "@/components/PhoneInput";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -279,7 +280,7 @@ export default function ProOrderPage() {
                         <FormField control={form.control} name="customerPhone" render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Input placeholder="Téléphone" type="tel" className="h-12 bg-gray-50 border-0 rounded-xl font-medium" {...field} data-testid="input-pro-customer-phone" />
+                              <PhoneInput value={field.value} onChange={field.onChange} placeholder="812345678" data-testid="input-pro-customer-phone" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

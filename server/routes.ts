@@ -282,18 +282,24 @@ export async function registerRoutes(
   app.get("/api/driver/:id/stats", async (req, res) => {
     try {
       const driverId = req.params.id;
-      const allMissions = await storage.listDeliveries({ driverId });
+      const [allMissions, approvedCashouts] = await Promise.all([
+        storage.listDeliveries({ driverId }),
+        storage.listCashoutRequests({ userId: driverId, status: 'approved' }),
+      ]);
       const delivered = allMissions.filter(d => d.status === 'delivered');
       const inTransit = allMissions.filter(d => d.status === 'in_transit');
       const earnings = delivered.reduce((sum, d) => sum + parseFloat(d.deliveryFee || "0"), 0);
-      const cashToReturn = inTransit.reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0);
+      const totalCollected = delivered.reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0)
+        + inTransit.reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0);
+      const totalCashedOut = approvedCashouts.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0);
+      const cashToReturn = totalCollected - totalCashedOut;
       
       res.json({
         totalMissions: allMissions.length,
         deliveredCount: delivered.length,
         inTransitCount: inTransit.length,
         earnings,
-        cashToReturn,
+        cashToReturn: Math.max(0, cashToReturn),
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch driver stats" });
@@ -385,6 +391,164 @@ export async function registerRoutes(
     }
   });
   
+  app.post("/api/cashout", async (req, res) => {
+    try {
+      const { userId, amount } = req.body;
+      if (!userId || !amount || parseFloat(amount) <= 0) {
+        return res.status(400).json({ error: "Montant invalide" });
+      }
+      const request = await storage.createCashoutRequest({ userId, amount: amount.toString() });
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Cashout request error:", error);
+      res.status(500).json({ error: "Erreur lors de la demande de retrait" });
+    }
+  });
+
+  app.get("/api/cashout", async (req, res) => {
+    try {
+      const { userId, status } = req.query;
+      const list = await storage.listCashoutRequests({
+        userId: userId as string,
+        status: status as string,
+      });
+      res.json(list);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch cashout requests" });
+    }
+  });
+
+  app.post("/api/cashout/:id/resolve", async (req, res) => {
+    try {
+      const { status, adminNote } = req.body;
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: "Statut invalide" });
+      }
+      const updated = await storage.updateCashoutStatus(req.params.id, status, adminNote);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to resolve cashout request" });
+    }
+  });
+
+  app.post("/api/otp/send", async (req, res) => {
+    try {
+      const { phoneNumber } = req.body;
+      if (!phoneNumber) {
+        return res.status(400).json({ error: "Numéro de téléphone requis" });
+      }
+      const otpCode = generateOtpCode();
+      await storage.createOtpVerification(phoneNumber, otpCode);
+      const smsResult = await sendPinCodeSms(phoneNumber, otpCode, 'verification');
+      res.json({ success: true, smsStatus: smsResult.success ? 'sent' : 'failed' });
+    } catch (error) {
+      console.error("OTP send error:", error);
+      res.status(500).json({ error: "Erreur lors de l'envoi du code" });
+    }
+  });
+
+  app.post("/api/otp/verify", async (req, res) => {
+    try {
+      const { phoneNumber, otpCode } = req.body;
+      if (!phoneNumber || !otpCode) {
+        return res.status(400).json({ error: "Numéro et code requis" });
+      }
+      const isValid = await storage.verifyOtp(phoneNumber, otpCode);
+      if (!isValid) {
+        return res.status(400).json({ error: "Code invalide ou expiré" });
+      }
+      await storage.markPhoneVerified(phoneNumber);
+      res.json({ verified: true });
+    } catch (error) {
+      console.error("OTP verify error:", error);
+      res.status(500).json({ error: "Erreur de vérification" });
+    }
+  });
+
+  app.get("/api/admin/drivers-locations", async (req, res) => {
+    try {
+      const locations = await storage.listAllDriverLocations();
+      res.json(locations);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch driver locations" });
+    }
+  });
+
+  app.get("/api/admin/alerts", async (req, res) => {
+    try {
+      const allDeliveries = await storage.listDeliveries({});
+      const now = new Date();
+      const alerts: any[] = [];
+
+      const inTransit = allDeliveries.filter(d => d.status === 'in_transit');
+      for (const d of inTransit) {
+        if (d.createdAt) {
+          const hoursAgo = (now.getTime() - new Date(d.createdAt).getTime()) / (1000 * 60 * 60);
+          if (hoursAgo > 2) {
+            alerts.push({
+              type: 'late_delivery',
+              severity: hoursAgo > 6 ? 'critical' : 'warning',
+              message: `Colis en retard: ${d.customerName} (${Math.floor(hoursAgo)}h)`,
+              deliveryId: d.id,
+              driverId: d.driverId,
+            });
+          }
+        }
+      }
+
+      const drivers = (await storage.listAllProfiles()).filter(p => p.role === 'driver');
+      for (const driver of drivers) {
+        const driverDeliveries = allDeliveries.filter(d => d.driverId === driver.id && d.status === 'delivered');
+        const approvedCashouts = await storage.listCashoutRequests({ userId: driver.id, status: 'approved' });
+        const totalCollected = driverDeliveries.reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0);
+        const totalCashedOut = approvedCashouts.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0);
+        const debt = totalCollected - totalCashedOut;
+        if (debt > 100000) {
+          alerts.push({
+            type: 'high_debt',
+            severity: debt > 500000 ? 'critical' : 'warning',
+            message: `${driver.fullName || 'Livreur'} a ${debt.toLocaleString()} FC de dette`,
+            driverId: driver.id,
+            amount: debt,
+          });
+        }
+      }
+
+      res.json(alerts);
+    } catch (error) {
+      console.error("Admin alerts error:", error);
+      res.status(500).json({ error: "Failed to fetch alerts" });
+    }
+  });
+
+  app.get("/api/admin/stats", async (req, res) => {
+    try {
+      const allDeliveries = await storage.listDeliveries({});
+      const allProfiles = await storage.listAllProfiles();
+      const pendingCashouts = await storage.listCashoutRequests({ status: 'pending' });
+
+      const delivered = allDeliveries.filter(d => d.status === 'delivered');
+      const inTransit = allDeliveries.filter(d => d.status === 'in_transit');
+      const pending = allDeliveries.filter(d => d.status === 'pending');
+      const drivers = allProfiles.filter(p => p.role === 'driver');
+      const sellers = allProfiles.filter(p => p.role === 'pro_seller' || p.role === 'temp_seller');
+
+      res.json({
+        totalDeliveries: allDeliveries.length,
+        deliveredCount: delivered.length,
+        inTransitCount: inTransit.length,
+        pendingCount: pending.length,
+        totalDrivers: drivers.length,
+        totalSellers: sellers.length,
+        pendingCashouts: pendingCashouts.length,
+        totalRevenue: delivered.reduce((sum, d) => sum + parseFloat(d.deliveryFee || "0"), 0),
+      });
+    } catch (error) {
+      console.error("Admin stats error:", error);
+      res.status(500).json({ error: "Failed to fetch admin stats" });
+    }
+  });
+
   registerObjectStorageRoutes(app);
 
   return httpServer;

@@ -1,4 +1,4 @@
-import type { Delivery, Profile, Transaction } from "@shared/schema";
+import type { Delivery, Profile, Transaction, CashoutRequest } from "@shared/schema";
 
 const API_BASE = "/api";
 
@@ -185,6 +185,82 @@ export async function getSellerStats(sellerId: string): Promise<{ totalOrders: n
 export async function getDeliveryTracking(deliveryId: string): Promise<Delivery & { driverName?: string; driverPhone?: string; vehicleType?: string; vehicleColor?: string; driverAvatarUrl?: string; driverLat?: number; driverLng?: number }> {
   const res = await fetch(`${API_BASE}/deliveries/${deliveryId}/tracking`);
   if (!res.ok) throw new Error("Failed to fetch tracking data");
+  return res.json();
+}
+
+export async function createCashoutRequest(userId: string, amount: number): Promise<CashoutRequest> {
+  const res = await fetch(`${API_BASE}/cashout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, amount }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Erreur lors de la demande de retrait");
+  }
+  return res.json();
+}
+
+export async function listCashoutRequests(filters?: { userId?: string; status?: string }): Promise<CashoutRequest[]> {
+  const params = new URLSearchParams();
+  if (filters?.userId) params.set("userId", filters.userId);
+  if (filters?.status) params.set("status", filters.status);
+  const res = await fetch(`${API_BASE}/cashout?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch cashout requests");
+  return res.json();
+}
+
+export async function resolveCashoutRequest(id: string, status: string, adminNote?: string): Promise<CashoutRequest> {
+  const res = await fetch(`${API_BASE}/cashout/${id}/resolve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status, adminNote }),
+  });
+  if (!res.ok) throw new Error("Failed to resolve cashout request");
+  return res.json();
+}
+
+export async function sendOtp(phoneNumber: string): Promise<{ success: boolean; smsStatus: string }> {
+  const res = await fetch(`${API_BASE}/otp/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phoneNumber }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Erreur lors de l'envoi du code");
+  }
+  return res.json();
+}
+
+export async function verifyOtp(phoneNumber: string, otpCode: string): Promise<{ verified: boolean }> {
+  const res = await fetch(`${API_BASE}/otp/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phoneNumber, otpCode }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Code invalide");
+  }
+  return res.json();
+}
+
+export async function getAdminDriverLocations(): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/admin/drivers-locations`);
+  if (!res.ok) throw new Error("Failed to fetch driver locations");
+  return res.json();
+}
+
+export async function getAdminAlerts(): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/admin/alerts`);
+  if (!res.ok) throw new Error("Failed to fetch alerts");
+  return res.json();
+}
+
+export async function getAdminStats(): Promise<any> {
+  const res = await fetch(`${API_BASE}/admin/stats`);
+  if (!res.ok) throw new Error("Failed to fetch admin stats");
   return res.json();
 }
 

@@ -4,12 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
-import { createDelivery, registerSeller, getProfileByPhone, listDeliveries } from "@/lib/api";
+import { createDelivery, registerSeller, getProfileByPhone, listDeliveries, sendOtp, verifyOtp } from "@/lib/api";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import PhoneInput from "@/components/PhoneInput";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { MapPin, ArrowRight, Package, Loader2, Send, User, Phone, DollarSign, Clock, Truck, CheckCircle2, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,9 @@ export default function OrderPage() {
   const [dialogName, setDialogName] = useState("");
   const [isChecking, setIsChecking] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [dialogOtpStep, setDialogOtpStep] = useState(false);
+  const [dialogOtpCode, setDialogOtpCode] = useState("");
+  const [isSendingDialogOtp, setIsSendingDialogOtp] = useState(false);
   const [pendingFormValues, setPendingFormValues] = useState<z.infer<typeof formSchema> | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [activeField, setActiveField] = useState<'pickup' | 'delivery' | null>(null);
@@ -150,9 +155,37 @@ export default function OrderPage() {
     await submitDelivery(values);
   }
 
-  async function handlePhoneCheck() {
+  async function handlePhoneSendOtp() {
     if (dialogPhone.length < 9) { toast({ title: "Numéro invalide", description: "Entrez un numéro valide", variant: "destructive" }); return; }
+    setIsSendingDialogOtp(true);
+    try {
+      await sendOtp(dialogPhone);
+      toast({ title: "Code envoyé", description: "Code envoyé par SMS" });
+    } catch (error) {
+      toast({ title: "Erreur SMS", description: "Le SMS n'a pas pu être envoyé, mais vous pouvez continuer", variant: "destructive" });
+    } finally {
+      setIsSendingDialogOtp(false);
+      setDialogOtpStep(true);
+      setDialogOtpCode("");
+    }
+  }
+
+  async function handleDialogOtpVerify() {
+    if (dialogOtpCode.length < 6) { toast({ title: "Code incomplet", description: "Veuillez entrer le code à 6 chiffres", variant: "destructive" }); return; }
     setIsChecking(true);
+    try {
+      const { verified } = await verifyOtp(dialogPhone, dialogOtpCode);
+      if (!verified) {
+        toast({ title: "Code invalide", description: "Le code entré est incorrect", variant: "destructive" });
+        setIsChecking(false);
+        return;
+      }
+    } catch (error) {
+      toast({ title: "Code invalide", description: "Le code entré est incorrect", variant: "destructive" });
+      setIsChecking(false);
+      return;
+    }
+
     try {
       const foundProfile = await getProfileByPhone(dialogPhone);
       const mappedRole = foundProfile.role === 'driver' ? 'courier' : foundProfile.role;
@@ -164,8 +197,10 @@ export default function OrderPage() {
         avatar: foundProfile.avatarUrl || undefined,
       });
       setShowPhoneDialog(false);
+      setDialogOtpStep(false);
       toast({ title: "Connexion réussie", description: `Bienvenue ${foundProfile.fullName}!` });
       setDialogPhone("");
+      setDialogOtpCode("");
       if (foundProfile.role === 'driver') {
         setPendingFormValues(null);
         setLocation("/");
@@ -177,6 +212,7 @@ export default function OrderPage() {
       }
     } catch (error) {
       setShowPhoneDialog(false);
+      setDialogOtpStep(false);
       setShowNameDialog(true);
     } finally {
       setIsChecking(false);
@@ -383,7 +419,7 @@ export default function OrderPage() {
             <FormField control={form.control} name="customerPhone" render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <Input placeholder="Téléphone du client" type="tel" className="h-12 bg-gray-50 border-0 rounded-xl font-medium" {...field} data-testid="input-customer-phone" />
+                  <PhoneInput value={field.value} onChange={field.onChange} placeholder="812345678" data-testid="input-customer-phone" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -473,17 +509,48 @@ export default function OrderPage() {
         </form>
       </Form>
 
-      <Dialog open={showPhoneDialog} onOpenChange={setShowPhoneDialog}>
+      <Dialog open={showPhoneDialog} onOpenChange={(open) => { setShowPhoneDialog(open); if (!open) { setDialogOtpStep(false); setDialogOtpCode(""); } }}>
         <DialogContent className="rounded-[2rem] p-8 max-w-sm">
-          <DialogHeader><DialogTitle className="text-center font-black text-2xl tracking-tight text-secondary">Votre numéro</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-center font-black text-2xl tracking-tight text-secondary">
+            {dialogOtpStep ? "Vérification" : "Votre numéro"}
+          </DialogTitle></DialogHeader>
           <div className="space-y-5 pt-4">
-            <p className="text-sm text-gray-500 text-center">Entrez votre numéro de téléphone pour continuer</p>
-            <Input type="tel" placeholder="0812345678" value={dialogPhone} onChange={(e) => setDialogPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-              className="h-14 rounded-xl text-lg font-medium text-center tracking-wider" data-testid="input-dialog-phone" autoFocus />
-            <Button onClick={handlePhoneCheck} disabled={isChecking || dialogPhone.length < 9}
-              className="w-full h-14 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl text-base" data-testid="button-dialog-phone">
-              {isChecking ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continuer"}
-            </Button>
+            {!dialogOtpStep ? (
+              <>
+                <p className="text-sm text-gray-500 text-center">Entrez votre numéro de téléphone pour recevoir un code</p>
+                <PhoneInput value={dialogPhone} onChange={setDialogPhone} placeholder="812345678" autoFocus data-testid="input-dialog-phone" />
+                <Button onClick={handlePhoneSendOtp} disabled={isSendingDialogOtp || dialogPhone.length < 9}
+                  className="w-full h-14 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl text-base" data-testid="button-dialog-phone">
+                  {isSendingDialogOtp ? <Loader2 className="h-5 w-5 animate-spin" /> : "Envoyer le code"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 text-center">
+                  Entrez le code envoyé au <span className="font-bold text-secondary">+243 {dialogPhone}</span>
+                </p>
+                <div className="flex justify-center">
+                  <InputOTP maxLength={6} value={dialogOtpCode} onChange={setDialogOtpCode} data-testid="input-dialog-otp">
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                      <InputOTPSlot index={1} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                      <InputOTPSlot index={2} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                      <InputOTPSlot index={3} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                      <InputOTPSlot index={4} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                      <InputOTPSlot index={5} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+                <Button onClick={handleDialogOtpVerify} disabled={isChecking || dialogOtpCode.length < 6}
+                  className="w-full h-14 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl text-base" data-testid="button-dialog-verify-otp">
+                  {isChecking ? <Loader2 className="h-5 w-5 animate-spin" /> : "Vérifier"}
+                </Button>
+                <button type="button" onClick={() => { setDialogOtpStep(false); setDialogOtpCode(""); }}
+                  className="w-full text-sm text-primary font-bold hover:underline" data-testid="link-dialog-change-phone">
+                  Modifier le numéro
+                </button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

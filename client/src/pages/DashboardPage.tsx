@@ -2,11 +2,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, Phone, KeyRound, Camera, Navigation, MapPin, Truck, ToggleLeft, ToggleRight, Info, MessageCircle, PhoneCall, DollarSign, User, ChevronUp, Package } from "lucide-react";
+import { CheckCircle2, Clock, Phone, KeyRound, Camera, Navigation, MapPin, Truck, ToggleLeft, ToggleRight, Info, MessageCircle, PhoneCall, DollarSign, User, ChevronUp, Package, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { listDeliveries, acceptDelivery, updateDeliveryPhoto, validateDelivery, uploadFile, getDriverDetails, updateDriverAvailability, getDriverStats } from "@/lib/api";
+import { listDeliveries, acceptDelivery, updateDeliveryPhoto, validateDelivery, uploadFile, getDriverDetails, updateDriverAvailability, getDriverStats, createCashoutRequest } from "@/lib/api";
 import type { Delivery } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -33,6 +33,9 @@ export default function DashboardPage() {
   const [showDeliverySuccess, setShowDeliverySuccess] = useState(false);
   const [showDeliveredList, setShowDeliveredList] = useState(false);
   const [showEarningsDetail, setShowEarningsDetail] = useState(false);
+  const [showCashoutDialog, setShowCashoutDialog] = useState(false);
+  const [cashoutAmount, setCashoutAmount] = useState("");
+  const [isSubmittingCashout, setIsSubmittingCashout] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!profile?.id) return;
@@ -164,6 +167,31 @@ export default function DashboardPage() {
   const openNormalCall = (phone: string) => {
     window.open(`tel:${phone}`);
     setCallDelivery(null);
+  };
+
+  const handleCashout = async () => {
+    if (!profile?.id) return;
+    const amount = parseFloat(cashoutAmount);
+    if (!amount || amount <= 0) {
+      toast({ title: "Montant invalide", description: "Veuillez entrer un montant supérieur à 0", variant: "destructive" });
+      return;
+    }
+    if (amount > stats.cashToReturn) {
+      toast({ title: "Montant trop élevé", description: `Le montant maximum est de ${stats.cashToReturn.toLocaleString()} FC`, variant: "destructive" });
+      return;
+    }
+    setIsSubmittingCashout(true);
+    try {
+      await createCashoutRequest(profile.id, amount);
+      toast({ title: "Demande envoyée", description: `Votre demande de retrait de ${amount.toLocaleString()} FC est en attente de validation` });
+      setCashoutAmount("");
+      setShowCashoutDialog(false);
+      await loadAll();
+    } catch (error: any) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSubmittingCashout(false);
+    }
   };
 
   return (
@@ -398,11 +426,54 @@ export default function DashboardPage() {
           <p className="text-2xl font-black text-green-600" data-testid="text-earnings">{stats.earnings.toLocaleString()}</p>
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Gains FC</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm">
+        <div
+          className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm cursor-pointer hover:border-amber-100 transition-colors"
+          onClick={() => setShowCashoutDialog(true)}
+          data-testid="card-cash-return"
+        >
           <p className="text-2xl font-black text-amber-600" data-testid="text-cash-return">{stats.cashToReturn.toLocaleString()}</p>
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Cash \u00e0 rendre</p>
+          <div className="flex items-center justify-center gap-1 mt-2">
+            <Banknote className="h-3 w-3 text-amber-500" />
+            <span className="text-[9px] font-black text-amber-500 uppercase">Retirer</span>
+          </div>
         </div>
       </div>
+
+      <Dialog open={showCashoutDialog} onOpenChange={setShowCashoutDialog}>
+        <DialogContent className="rounded-[2rem] p-6 max-w-[90%]" data-testid="dialog-cashout">
+          <DialogHeader>
+            <DialogTitle className="text-center font-black text-xl tracking-tight">Demande de retrait</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="bg-amber-50 p-4 rounded-2xl text-center">
+              <p className="text-[10px] font-black uppercase text-amber-600 tracking-widest mb-1">Disponible</p>
+              <p className="text-3xl font-black text-amber-600" data-testid="cashout-available">{stats.cashToReturn.toLocaleString()} FC</p>
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="number"
+                placeholder="Montant en FC"
+                value={cashoutAmount}
+                onChange={(e) => setCashoutAmount(e.target.value)}
+                max={stats.cashToReturn}
+                min={1}
+                className="h-14 rounded-2xl text-center text-lg font-black border-gray-200"
+                data-testid="input-cashout-amount"
+              />
+              <p className="text-[10px] text-gray-400 text-center">Maximum: {stats.cashToReturn.toLocaleString()} FC</p>
+            </div>
+            <Button
+              className="w-full h-14 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest"
+              onClick={handleCashout}
+              disabled={isSubmittingCashout}
+              data-testid="button-submit-cashout"
+            >
+              {isSubmittingCashout ? "Envoi en cours..." : "Envoyer la demande"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {myMissions.length > 0 && (
         <div className="space-y-3">

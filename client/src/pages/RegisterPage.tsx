@@ -3,12 +3,15 @@ import { useLocation } from "wouter";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import PhoneInput from "@/components/PhoneInput";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Truck, Store, MapPin, Tag, Crown } from "lucide-react";
-import { registerSeller, createProfile } from "@/lib/api";
+import { Check, Truck, Store, MapPin, Tag, Crown, Loader2 } from "lucide-react";
+import { registerSeller, createProfile, sendOtp, verifyOtp } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import kolisaLogo from "@/assets/kolisa-logo.png";
 
 const SELLER_CATEGORIES = [
@@ -30,6 +33,9 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [role, setSelectedRole] = useState<RoleChoice>('pro_seller');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOtpStep, setShowOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
@@ -52,7 +58,44 @@ export default function RegisterPage() {
       return;
     }
 
+    if (formData.phone.length < 9) {
+      toast({ title: "Numéro invalide", description: "Veuillez entrer un numéro de téléphone valide", variant: "destructive" });
+      return;
+    }
+
     setIsSubmitting(true);
+    try {
+      await sendOtp(formData.phone);
+      toast({ title: "Code envoyé", description: "Code envoyé par SMS" });
+    } catch (error) {
+      toast({ title: "Erreur SMS", description: "Le SMS n'a pas pu être envoyé, mais vous pouvez continuer", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+      setShowOtpStep(true);
+      setOtpCode("");
+    }
+  };
+
+  const handleVerifyAndRegister = async () => {
+    if (otpCode.length < 6) {
+      toast({ title: "Code incomplet", description: "Veuillez entrer le code à 6 chiffres", variant: "destructive" });
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const { verified } = await verifyOtp(formData.phone, otpCode);
+      if (!verified) {
+        toast({ title: "Code invalide", description: "Le code entré est incorrect", variant: "destructive" });
+        setIsVerifying(false);
+        return;
+      }
+    } catch (error) {
+      toast({ title: "Code invalide", description: "Le code entré est incorrect", variant: "destructive" });
+      setIsVerifying(false);
+      return;
+    }
+
     try {
       let newProfile;
 
@@ -85,6 +128,7 @@ export default function RegisterPage() {
         description: `Bienvenue ${formData.fullName}!`,
       });
 
+      setShowOtpStep(false);
       setLocation('/');
     } catch (error: any) {
       toast({
@@ -93,7 +137,7 @@ export default function RegisterPage() {
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsVerifying(false);
     }
   };
 
@@ -165,7 +209,7 @@ export default function RegisterPage() {
 
             <div className="space-y-2">
               <Label htmlFor="phone">Téléphone</Label>
-              <Input id="phone" name="phone" required placeholder="08..." value={formData.phone} onChange={handleChange} className="h-12 rounded-xl" data-testid="input-phone" />
+              <PhoneInput value={formData.phone} onChange={(val) => setFormData(prev => ({ ...prev, phone: val }))} placeholder="812345678" data-testid="input-phone" />
             </div>
 
             {role === 'pro_seller' && (
@@ -227,7 +271,7 @@ export default function RegisterPage() {
             )}
 
             <Button type="submit" disabled={isSubmitting} className="w-full h-14 bg-secondary text-white font-bold rounded-xl text-lg mt-8" data-testid="button-register">
-              {isSubmitting ? "Création..." : "S'inscrire"}
+              {isSubmitting ? <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Envoi du code...</> : "S'inscrire"}
             </Button>
           </form>
           
@@ -239,6 +283,35 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={showOtpStep} onOpenChange={setShowOtpStep}>
+        <DialogContent className="rounded-[2rem] p-8 max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center font-black text-2xl tracking-tight text-secondary">Vérification</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 pt-4">
+            <p className="text-sm text-gray-500 text-center">
+              Entrez le code à 6 chiffres envoyé au <span className="font-bold text-secondary">+243 {formData.phone}</span>
+            </p>
+            <div className="flex justify-center">
+              <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode} data-testid="input-register-otp">
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                  <InputOTPSlot index={1} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                  <InputOTPSlot index={2} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                  <InputOTPSlot index={3} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                  <InputOTPSlot index={4} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                  <InputOTPSlot index={5} className="h-14 w-12 text-2xl font-black rounded-xl" />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+            <Button onClick={handleVerifyAndRegister} disabled={isVerifying || otpCode.length < 6}
+              className="w-full h-14 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl text-base" data-testid="button-verify-register-otp">
+              {isVerifying ? <Loader2 className="h-5 w-5 animate-spin" /> : "Vérifier et créer le compte"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

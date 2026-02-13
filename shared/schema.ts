@@ -67,6 +67,25 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+export const cashoutRequests = pgTable("cashout_requests", {
+  id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
+  userId: uuid("user_id").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").default("pending"),
+  adminNote: text("admin_note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+});
+
+export const otpVerifications = pgTable("otp_verifications", {
+  id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
+  phoneNumber: text("phone_number").notNull(),
+  otpCode: varchar("otp_code", { length: 6 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  verified: boolean("verified").default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 export const insertProfileSchema = createInsertSchema(profiles).omit({
   createdAt: true,
   updatedAt: true,
@@ -98,6 +117,17 @@ export type InsertDelivery = z.infer<typeof insertDeliverySchema>;
 
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+
+export const insertCashoutRequestSchema = createInsertSchema(cashoutRequests).omit({
+  id: true,
+  createdAt: true,
+  resolvedAt: true,
+  status: true,
+  adminNote: true,
+});
+
+export type CashoutRequest = typeof cashoutRequests.$inferSelect;
+export type InsertCashoutRequest = z.infer<typeof insertCashoutRequestSchema>;
 
 export type DriverDetails = typeof driverDetails.$inferSelect;
 export type DriverLocation = typeof driverLocations.$inferSelect;

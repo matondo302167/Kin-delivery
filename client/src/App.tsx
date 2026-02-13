@@ -20,6 +20,7 @@ import ProDashboardPage from "@/pages/ProDashboardPage";
 import WalletPage from "@/pages/WalletPage";
 import TrackingPage from "@/pages/TrackingPage";
 import ProfilePage from "@/pages/ProfilePage";
+import AdminDashboardPage from "@/pages/AdminDashboardPage";
 import { useStore } from "@/lib/store";
 
 import SellerPackagesPage from "@/pages/SellerPackagesPage";
@@ -65,6 +66,12 @@ function Router() {
                   <Route path="/" component={DashboardPage} />
                   <Route path="/dashboard" component={DashboardPage} />
                   <Route path="/wallet" component={WalletPage} />
+                </>
+              )}
+              {userRole === 'admin' && (
+                <>
+                  <Route path="/" component={AdminDashboardPage} />
+                  <Route path="/admin" component={AdminDashboardPage} />
                 </>
               )}
               {userRole === 'seller' && (
