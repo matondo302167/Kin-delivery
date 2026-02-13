@@ -142,16 +142,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listDeliveries(filters?: { status?: string; sellerId?: string; driverId?: string }): Promise<Delivery[]> {
-    let query = db.select().from(deliveries);
-
+    const conditions = [];
     if (filters?.status) {
-      query = query.where(eq(deliveries.status, filters.status)) as any;
+      conditions.push(eq(deliveries.status, filters.status));
     }
     if (filters?.sellerId) {
-      query = query.where(eq(deliveries.sellerId, filters.sellerId)) as any;
+      conditions.push(eq(deliveries.sellerId, filters.sellerId));
     }
     if (filters?.driverId) {
-      query = query.where(eq(deliveries.driverId, filters.driverId)) as any;
+      conditions.push(eq(deliveries.driverId, filters.driverId));
+    }
+
+    let query = db.select().from(deliveries);
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
     }
 
     return query.orderBy(desc(deliveries.createdAt));

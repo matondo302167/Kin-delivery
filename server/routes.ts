@@ -282,18 +282,11 @@ export async function registerRoutes(
   app.get("/api/driver/:id/stats", async (req, res) => {
     try {
       const driverId = req.params.id;
-      const [allMissions, txList] = await Promise.all([
-        storage.listDeliveries({ driverId }),
-        storage.listTransactions(driverId),
-      ]);
+      const allMissions = await storage.listDeliveries({ driverId });
       const delivered = allMissions.filter(d => d.status === 'delivered');
       const inTransit = allMissions.filter(d => d.status === 'in_transit');
-      const earnings = txList.reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
-      const cashToReturn = inTransit.reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0) + 
-        delivered.filter(d => {
-          const tx = txList.find(t => t.deliveryId === d.id);
-          return !tx;
-        }).reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0);
+      const earnings = delivered.reduce((sum, d) => sum + parseFloat(d.deliveryFee || "0"), 0);
+      const cashToReturn = inTransit.reduce((sum, d) => sum + parseFloat(d.articlePrice || "0"), 0);
       
       res.json({
         totalMissions: allMissions.length,
