@@ -31,6 +31,27 @@ export interface SendSmsResult {
   error?: string;
 }
 
+export async function sendPhoneVerificationSms(
+  recipientPhone: string,
+  otpCode: string
+): Promise<SendSmsResult> {
+  try {
+    const client = getTwilioClient();
+    const formattedPhone = formatPhoneNumber(recipientPhone);
+    const message = `KOLISA\n\nVotre code de vérification est : ${otpCode}\n\nCe code expire dans 10 minutes.\nNe le partagez avec personne.`;
+    const result = await client.messages.create({
+      body: message,
+      from: fromNumber,
+      to: formattedPhone,
+    });
+    console.log('Twilio verification SMS sent:', result.sid);
+    return { success: true, messageId: result.sid };
+  } catch (error: any) {
+    console.error('Twilio SMS error:', error.message || error);
+    return { success: false, error: error.message || 'Failed to send SMS' };
+  }
+}
+
 export async function sendPinCodeSms(
   recipientPhone: string,
   pinCode: string,
@@ -41,7 +62,7 @@ export async function sendPinCodeSms(
 
     const formattedPhone = formatPhoneNumber(recipientPhone);
 
-    const message = `KOLISA Livraison\n\nVotre colis arrive!\n\nCode PIN: ${pinCode}\n\nSuivi: ${trackingToken}\n\nPrésentez ce code au livreur.`;
+    const message = `KOLISA Livraison\n\nVotre colis arrive!\n\nCode de confirmation : ${pinCode}\n\nSuivi : ${trackingToken}\n\nPrésentez ce code au livreur pour recevoir votre colis.`;
 
     const result = await client.messages.create({
       body: message,

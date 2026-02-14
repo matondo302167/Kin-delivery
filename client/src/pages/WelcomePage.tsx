@@ -10,7 +10,7 @@ import courierIllustration from "@/assets/courier-illustration.png";
 import sellerIllustration from "@/assets/seller-illustration.png";
 import africanDeliveryIllustration from "@/assets/african-delivery-illustration.png";
 import sendParcelDrawing from "@/assets/send-parcel-drawing.png";
-import kolisaLogo from "@/assets/kolisa-logo.png";
+import kolisaLogo from "@/assets/kolisa-k-moto-logo.png";
 
 export default function WelcomePage() {
   const [, setLocation] = useLocation();

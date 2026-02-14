@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { Delivery } from "@shared/schema";
-import kolisaLogo from "@/assets/kolisa-logo.png";
+import kolisaLogo from "@/assets/kolisa-k-moto-logo.png";
 
 type TrackingData = Delivery & {
   driverName?: string;

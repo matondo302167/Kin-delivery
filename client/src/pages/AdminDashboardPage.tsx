@@ -140,7 +140,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {activeTab === 'map' && (
-        <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm" style={{ height: '400px' }} data-testid="admin-map">
+        <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm relative" style={{ height: '400px' }} data-testid="admin-map">
           <MapContainer
             center={[-4.3217, 15.3126]}
             zoom={12}
@@ -168,7 +168,7 @@ export default function AdminDashboardPage() {
             ))}
           </MapContainer>
           {driverLocations.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-[500]">
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-[400] pointer-events-none rounded-2xl">
               <div className="text-center">
                 <MapPin className="h-10 w-10 text-gray-200 mx-auto mb-2" />
                 <p className="text-xs font-bold text-gray-400">Aucun livreur localisé</p>

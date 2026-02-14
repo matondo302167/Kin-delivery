@@ -74,8 +74,8 @@ export default function DashboardPage() {
       const result = await updateDriverAvailability(profile.id, !isActive);
       setIsActive(result.isActive);
       toast({
-        title: result.isActive ? "Vous \u00eates en service" : "Vous \u00eates hors service",
-        description: result.isActive ? "Vous recevez les courses" : "Pause activ\u00e9e",
+        title: result.isActive ? "Vous êtes en service" : "Vous êtes hors service",
+        description: result.isActive ? "Vous recevez les courses" : "Pause activée",
       });
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -88,7 +88,7 @@ export default function DashboardPage() {
     if (!profile?.id) return;
     try {
       await acceptDelivery(id, profile.id);
-      toast({ title: "Mission accept\u00e9e", description: "En route pour le ramassage" });
+      toast({ title: "Mission acceptée", description: "En route pour le ramassage" });
       await loadAll();
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -103,7 +103,7 @@ export default function DashboardPage() {
         const { objectPath } = await uploadFile(file);
         await updateDeliveryPhoto(selectedDelivery.id, objectPath);
         setPhotoUrl(objectPath);
-        toast({ title: "Photo enregistr\u00e9e" });
+        toast({ title: "Photo enregistrée" });
       } catch (error: any) {
         toast({ title: "Erreur photo", description: error.message, variant: "destructive" });
       } finally {
@@ -215,8 +215,8 @@ export default function DashboardPage() {
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="h-10 w-10 text-green-500" />
               </div>
-              <h2 className="text-2xl font-black text-secondary mb-2" data-testid="text-success-title">Livraison valid\u00e9e !</h2>
-              <p className="text-sm text-gray-500 mb-5">Le colis a \u00e9t\u00e9 livr\u00e9 avec succ\u00e8s. Vous revenez \u00e0 la liste de vos courses.</p>
+              <h2 className="text-2xl font-black text-secondary mb-2" data-testid="text-success-title">Livraison validée !</h2>
+              <p className="text-sm text-gray-500 mb-5">Le colis a été livré avec succès. Vous revenez à la liste de vos courses.</p>
               <Button
                 className="w-full h-12 rounded-2xl bg-green-500 text-white font-black uppercase tracking-widest"
                 onClick={() => setShowDeliverySuccess(false)}
@@ -232,7 +232,7 @@ export default function DashboardPage() {
       <Dialog open={!!detailsDelivery} onOpenChange={(open) => { if (!open) setDetailsDelivery(null); }}>
         <DialogContent className="rounded-[2rem] p-6 max-w-[90%]" data-testid="dialog-order-details">
           <DialogHeader>
-            <DialogTitle className="text-center font-black text-xl tracking-tight">D\u00e9tails de la commande</DialogTitle>
+            <DialogTitle className="text-center font-black text-xl tracking-tight">Détails de la commande</DialogTitle>
           </DialogHeader>
           {detailsDelivery && (
             <div className="space-y-4 pt-2">
@@ -247,7 +247,7 @@ export default function DashboardPage() {
                     <span className="text-xs font-bold text-secondary" data-testid="detail-customer-name">{detailsDelivery.customerName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-xs text-gray-500">T\u00e9l\u00e9phone</span>
+                    <span className="text-xs text-gray-500">Téléphone</span>
                     <span className="text-xs font-bold text-secondary" data-testid="detail-customer-phone">{detailsDelivery.customerPhone}</span>
                   </div>
                 </div>
@@ -285,7 +285,7 @@ export default function DashboardPage() {
                     <span className="text-sm font-black text-green-600" data-testid="detail-delivery-fee">{parseFloat(detailsDelivery.deliveryFee || "0").toLocaleString()} FC</span>
                   </div>
                   <div className="border-t border-primary/20 pt-2 flex justify-between">
-                    <span className="text-xs font-bold text-secondary">Total \u00e0 collecter</span>
+                    <span className="text-xs font-bold text-secondary">Total à collecter</span>
                     <span className="text-sm font-black text-secondary" data-testid="detail-total">
                       {(parseFloat(detailsDelivery.articlePrice || "0") + parseFloat(detailsDelivery.deliveryFee || "0")).toLocaleString()} FC
                     </span>
@@ -301,12 +301,12 @@ export default function DashboardPage() {
                     detailsDelivery.status === 'in_transit' ? 'bg-blue-500 text-white' :
                     'bg-amber-500 text-white'
                   }`} data-testid="detail-status">
-                    {detailsDelivery.status === 'delivered' ? 'Livr\u00e9' : detailsDelivery.status === 'in_transit' ? 'En cours' : 'En attente'}
+                    {detailsDelivery.status === 'delivered' ? 'Livré' : detailsDelivery.status === 'in_transit' ? 'En cours' : 'En attente'}
                   </Badge>
                 </div>
                 {detailsDelivery.createdAt && (
                   <div className="flex justify-between mt-2">
-                    <span className="text-xs text-gray-500">Date de cr\u00e9ation</span>
+                    <span className="text-xs text-gray-500">Date de création</span>
                     <span className="text-xs font-medium text-secondary" data-testid="detail-created-at">
                       {new Date(detailsDelivery.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -341,7 +341,7 @@ export default function DashboardPage() {
                 data-testid="button-normal-call"
               >
                 <PhoneCall className="h-5 w-5 text-blue-500" />
-                Appel t\u00e9l\u00e9phonique
+                Appel téléphonique
               </Button>
             </div>
           )}
@@ -351,13 +351,13 @@ export default function DashboardPage() {
       <Dialog open={showEarningsDetail} onOpenChange={setShowEarningsDetail}>
         <DialogContent className="rounded-[2rem] p-6 max-w-[90%] max-h-[80vh] overflow-y-auto" data-testid="dialog-earnings-detail">
           <DialogHeader>
-            <DialogTitle className="text-center font-black text-xl tracking-tight">D\u00e9tail des gains</DialogTitle>
+            <DialogTitle className="text-center font-black text-xl tracking-tight">Détail des gains</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <div className="bg-green-50 p-4 rounded-2xl text-center">
               <p className="text-[10px] font-black uppercase text-green-600 tracking-widest mb-1">Total des gains</p>
               <p className="text-3xl font-black text-green-600" data-testid="earnings-total">{stats.earnings.toLocaleString()} FC</p>
-              <p className="text-xs text-gray-500 mt-1">{deliveredMissions.length} livraison{deliveredMissions.length !== 1 ? 's' : ''} effectu\u00e9e{deliveredMissions.length !== 1 ? 's' : ''}</p>
+              <p className="text-xs text-gray-500 mt-1">{deliveredMissions.length} livraison{deliveredMissions.length !== 1 ? 's' : ''} effectuée{deliveredMissions.length !== 1 ? 's' : ''}</p>
             </div>
             {deliveredMissions.length === 0 ? (
               <div className="text-center py-8">
@@ -411,28 +411,37 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-3 gap-3">
         <div
-          className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm cursor-pointer hover:border-green-100 transition-colors"
+          className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center border border-blue-100 shadow-sm cursor-pointer hover:shadow-md transition-all"
           onClick={() => setShowDeliveredList(!showDeliveredList)}
           data-testid="card-delivered"
         >
-          <p className="text-2xl font-black text-secondary" data-testid="text-delivered-count">{stats.deliveredCount}</p>
-          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Livr\u00e9es</p>
+          <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-1">
+            <Package className="h-4 w-4 text-blue-500" />
+          </div>
+          <p className="text-2xl font-black text-blue-600" data-testid="text-delivered-count">{stats.deliveredCount}</p>
+          <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Livrées</p>
         </div>
         <div
-          className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm cursor-pointer hover:border-green-100 transition-colors"
+          className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center border border-green-100 shadow-sm cursor-pointer hover:shadow-md transition-all"
           onClick={() => setShowEarningsDetail(true)}
           data-testid="card-earnings"
         >
+          <div className="w-8 h-8 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-1">
+            <DollarSign className="h-4 w-4 text-green-500" />
+          </div>
           <p className="text-2xl font-black text-green-600" data-testid="text-earnings">{stats.earnings.toLocaleString()}</p>
-          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Gains FC</p>
+          <p className="text-[9px] font-bold text-green-400 uppercase tracking-widest">Gains FC</p>
         </div>
         <div
-          className="bg-white rounded-2xl p-4 text-center border border-gray-50 shadow-sm cursor-pointer hover:border-amber-100 transition-colors"
+          className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl p-4 text-center border border-amber-100 shadow-sm cursor-pointer hover:shadow-md transition-all"
           onClick={() => setShowCashoutDialog(true)}
           data-testid="card-cash-return"
         >
+          <div className="w-8 h-8 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-1">
+            <Banknote className="h-4 w-4 text-amber-500" />
+          </div>
           <p className="text-2xl font-black text-amber-600" data-testid="text-cash-return">{stats.cashToReturn.toLocaleString()}</p>
-          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Cash \u00e0 rendre</p>
+          <p className="text-[9px] font-bold text-amber-400 uppercase tracking-widest">Cash à rendre</p>
           <div className="flex items-center justify-center gap-1 mt-2">
             <Banknote className="h-3 w-3 text-amber-500" />
             <span className="text-[9px] font-black text-amber-500 uppercase">Retirer</span>
@@ -483,7 +492,7 @@ export default function DashboardPage() {
               key={d.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-2xl p-5 shadow-md border border-blue-50 space-y-4"
+              className="bg-gradient-to-br from-white to-blue-50 rounded-2xl p-5 shadow-md border border-blue-100 space-y-4"
               data-testid={`card-mission-${d.id}`}
             >
               <div className="flex justify-between items-start">
@@ -508,7 +517,7 @@ export default function DashboardPage() {
                   data-testid={`button-details-${d.id}`}
                 >
                   <Info className="h-4 w-4 text-purple-500" />
-                  <span className="text-[9px]">D\u00e9tails</span>
+                  <span className="text-[9px]">Détails</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -554,14 +563,14 @@ export default function DashboardPage() {
                         </div>
                         <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
                         <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full rounded-xl" disabled={isUploading} data-testid="button-upload-photo">
-                          {isUploading ? "Upload..." : photoUrl ? "Photo ajout\u00e9e \u2713" : "Prendre une photo"}
+                          {isUploading ? "Upload..." : photoUrl ? "Photo ajoutée \u2713" : "Prendre une photo"}
                         </Button>
                       </div>
 
                       <div className="bg-primary/5 p-4 rounded-2xl border border-dashed border-primary/20">
                         <KeyRound className="h-6 w-6 text-primary mx-auto mb-2" />
                         <p className="text-[10px] font-black uppercase text-secondary text-center mb-1">Code OTP Client</p>
-                        <p className="text-[9px] font-bold text-gray-400 text-center mb-3">Code 6 chiffres re\u00e7u par le client</p>
+                        <p className="text-[9px] font-bold text-gray-400 text-center mb-3">Code 6 chiffres reçu par le client</p>
                         <Input type="text" inputMode="numeric" maxLength={6} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022" value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                           className="text-center text-3xl h-16 font-black tracking-[0.5em] border-0 bg-white rounded-xl" data-testid="input-otp-code" />
@@ -593,7 +602,7 @@ export default function DashboardPage() {
           >
             <div className="flex items-center justify-between px-1">
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">
-                Colis livr\u00e9s ({deliveredMissions.length})
+                Colis livrés ({deliveredMissions.length})
               </h3>
               <button onClick={() => setShowDeliveredList(false)} className="text-gray-400">
                 <ChevronUp className="h-4 w-4" />
@@ -602,7 +611,7 @@ export default function DashboardPage() {
             {deliveredMissions.length === 0 ? (
               <div className="text-center py-8 bg-white rounded-2xl border border-gray-50">
                 <Package className="h-10 w-10 text-gray-200 mx-auto mb-2" />
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Aucun colis livr\u00e9</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Aucun colis livré</p>
               </div>
             ) : (
               deliveredMissions.map(d => (
@@ -627,7 +636,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <Badge className="bg-green-500 text-white text-[9px] font-black uppercase mb-1">Livr\u00e9</Badge>
+                    <Badge className="bg-green-500 text-white text-[9px] font-black uppercase mb-1">Livré</Badge>
                     <p className="text-sm font-black text-green-600">{parseFloat(d.deliveryFee || "0").toLocaleString()} FC</p>
                   </div>
                 </motion.div>
@@ -649,7 +658,7 @@ export default function DashboardPage() {
           <div className="text-center py-12 bg-white rounded-2xl border border-gray-50">
             <Truck className="h-12 w-12 text-gray-200 mx-auto mb-3" />
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Aucune course disponible</p>
-            <p className="text-[10px] text-gray-400 mt-1">Les nouvelles courses appara\u00eetront ici</p>
+            <p className="text-[10px] text-gray-400 mt-1">Les nouvelles courses apparaîtront ici</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -658,7 +667,7 @@ export default function DashboardPage() {
                 key={d.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50 space-y-3"
+                className="bg-gradient-to-br from-white to-primary/5 rounded-2xl p-5 shadow-sm border border-primary/10 space-y-3 hover:shadow-md transition-all"
                 data-testid={`card-available-${d.id}`}
               >
                 <div className="flex justify-between items-start">

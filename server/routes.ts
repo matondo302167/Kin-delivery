@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { pool } from "./db";
 import { insertDeliverySchema, insertProfileSchema } from "@shared/schema";
 import { z } from "zod";
-import { sendPinCodeSms, sendDeliveryConfirmationSms } from "./services/twilioService";
+import { sendPinCodeSms, sendDeliveryConfirmationSms, sendPhoneVerificationSms } from "./services/twilioService";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 function generateOtpCode(): string {
@@ -224,7 +224,11 @@ export async function registerRoutes(
         });
       }
       
-      await sendDeliveryConfirmationSms(delivery.customerPhone, delivery.id);
+      try {
+        await sendDeliveryConfirmationSms(delivery.customerPhone, delivery.id);
+      } catch (smsError) {
+        console.error("SMS confirmation error (non-blocking):", smsError);
+      }
       
       res.json({ 
         delivery: updatedDelivery,
@@ -439,7 +443,7 @@ export async function registerRoutes(
       }
       const otpCode = generateOtpCode();
       await storage.createOtpVerification(phoneNumber, otpCode);
-      const smsResult = await sendPinCodeSms(phoneNumber, otpCode, 'verification');
+      const smsResult = await sendPhoneVerificationSms(phoneNumber, otpCode);
       res.json({ success: true, smsStatus: smsResult.success ? 'sent' : 'failed' });
     } catch (error) {
       console.error("OTP send error:", error);

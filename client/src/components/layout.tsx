@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation, Redirect, Link } from "wouter";
 import { useStore } from "@/lib/store";
 import { Package, Wallet, Truck, Map, LogOut, User, LayoutDashboard, Send, ListOrdered } from "lucide-react";
@@ -8,6 +9,16 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { userRole, setRole, profile, logout } = useStore();
+
+  useEffect(() => {
+    if (!userRole) return;
+    window.history.pushState(null, "", window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [userRole, location]);
 
   if (!userRole || userRole === 'customer') {
     return <Redirect to="/welcome" />;

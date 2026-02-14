@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { getProfileByPhone, sendOtp, verifyOtp } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import kolisaLogo from "@/assets/kolisa-logo.png";
+import kolisaLogo from "@/assets/kolisa-k-moto-logo.png";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();

@@ -12,7 +12,7 @@ import { registerSeller, createProfile, sendOtp, verifyOtp } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import kolisaLogo from "@/assets/kolisa-logo.png";
+import kolisaLogo from "@/assets/kolisa-k-moto-logo.png";
 
 const SELLER_CATEGORIES = [
   { value: "mode", label: "Mode & Vêtements" },
