@@ -132,6 +132,19 @@ export async function validateDelivery(deliveryId: string, otpCode: string, driv
   return res.json();
 }
 
+export async function rateDelivery(deliveryId: string, rating: number): Promise<Delivery> {
+  const res = await fetch(`${API_BASE}/deliveries/${deliveryId}/rate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rating }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Erreur lors de la notation");
+  }
+  return res.json();
+}
+
 export async function listTransactions(userId: string): Promise<Transaction[]> {
   const res = await fetch(`${API_BASE}/transactions/${userId}`);
   if (!res.ok) throw new Error("Failed to fetch transactions");

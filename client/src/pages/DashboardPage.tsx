@@ -6,7 +6,7 @@ import { CheckCircle2, Clock, Phone, KeyRound, Camera, Navigation, MapPin, Truck
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { listDeliveries, acceptDelivery, updateDeliveryPhoto, validateDelivery, uploadFile, getDriverDetails, updateDriverAvailability, getDriverStats, createCashoutRequest } from "@/lib/api";
+import { listDeliveries, acceptDelivery, updateDeliveryPhoto, validateDelivery, uploadFile, getDriverDetails, updateDriverAvailability, updateDriverLocation, getDriverStats, createCashoutRequest } from "@/lib/api";
 import type { Delivery } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -66,6 +66,25 @@ export default function DashboardPage() {
     const interval = setInterval(loadAll, 10000);
     return () => clearInterval(interval);
   }, [loadAll]);
+
+  useEffect(() => {
+    if (!profile?.id || !isActive) return;
+    if (!("geolocation" in navigator)) return;
+
+    const sendLocation = () => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (profile?.id) updateDriverLocation(profile.id, pos.coords.latitude, pos.coords.longitude).catch(() => {});
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
+      );
+    };
+
+    sendLocation();
+    const interval = setInterval(sendLocation, 10000);
+    return () => clearInterval(interval);
+  }, [profile?.id, isActive]);
 
   const handleToggleAvailability = async () => {
     if (!profile?.id) return;

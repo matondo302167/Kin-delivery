@@ -23,6 +23,7 @@ export interface IStorage {
   updateDeliveryStatus(id: string, status: string): Promise<Delivery>;
   assignDriver(deliveryId: string, driverId: string): Promise<Delivery>;
   updateDeliveryPhoto(deliveryId: string, photoUrl: string): Promise<Delivery>;
+  updateDeliveryRating(deliveryId: string, rating: number): Promise<Delivery>;
 
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   listTransactions(userId: string): Promise<Transaction[]>;
@@ -197,6 +198,14 @@ export class DatabaseStorage implements IStorage {
   async updateDeliveryPhoto(deliveryId: string, photoUrl: string): Promise<Delivery> {
     const result = await db.update(deliveries)
       .set({ proofImageUrl: photoUrl })
+      .where(eq(deliveries.id, deliveryId))
+      .returning();
+    return result[0];
+  }
+
+  async updateDeliveryRating(deliveryId: string, rating: number): Promise<Delivery> {
+    const result = await db.update(deliveries)
+      .set({ driverRating: rating })
       .where(eq(deliveries.id, deliveryId))
       .returning();
     return result[0];

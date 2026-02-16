@@ -240,6 +240,27 @@ export async function registerRoutes(
     }
   });
   
+  app.post("/api/deliveries/:id/rate", async (req, res) => {
+    try {
+      const { rating } = req.body;
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ error: "Note entre 1 et 5 requise" });
+      }
+      const delivery = await storage.getDelivery(req.params.id);
+      if (!delivery) {
+        return res.status(404).json({ error: "Livraison introuvable" });
+      }
+      if (delivery.status !== 'delivered') {
+        return res.status(400).json({ error: "La livraison n'est pas encore terminée" });
+      }
+      const updated = await storage.updateDeliveryRating(req.params.id, rating);
+      res.json(updated);
+    } catch (error) {
+      console.error("Rating error:", error);
+      res.status(500).json({ error: "Erreur lors de la notation" });
+    }
+  });
+
   app.get("/api/transactions/:userId", async (req, res) => {
     try {
       const txList = await storage.listTransactions(req.params.userId);
