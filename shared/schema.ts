@@ -22,11 +22,14 @@ export const deliveries = pgTable("deliveries", {
   customerPhone: text("customer_phone").notNull(),
   pickupAddress: text("pickup_address").notNull(),
   deliveryAddress: text("delivery_address").notNull(),
+  deliveryLat: doublePrecision("delivery_lat"),
+  deliveryLng: doublePrecision("delivery_lng"),
   articlePrice: decimal("article_price", { precision: 10, scale: 2 }).default("0.00"),
   deliveryFee: decimal("delivery_fee", { precision: 10, scale: 2 }).default("0.00"),
   status: text("status").default("pending"),
   otpCode: varchar("otp_code", { length: 6 }),
   proofImageUrl: text("proof_image_url"),
+  driverRating: integer("driver_rating"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -101,6 +104,7 @@ export const insertDeliverySchema = createInsertSchema(deliveries).omit({
   otpCode: true,
   proofImageUrl: true,
   driverId: true,
+  driverRating: true,
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
