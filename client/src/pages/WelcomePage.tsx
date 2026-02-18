@@ -10,7 +10,7 @@ import courierIllustration from "@/assets/courier-illustration.png";
 import sellerIllustration from "@/assets/seller-illustration.png";
 import africanDeliveryIllustration from "@/assets/african-delivery-illustration.png";
 import sendParcelDrawing from "@/assets/send-parcel-drawing.png";
-import kolisaLogo from "@/assets/kolisa-k-moto-logo.png";
+import KolisaLogo from "@/components/KolisaLogo";
 
 export default function WelcomePage() {
   const [, setLocation] = useLocation();
@@ -63,10 +63,7 @@ export default function WelcomePage() {
   return (
     <div className="min-h-screen bg-white font-sans text-black overflow-x-hidden">
       <header className="bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 sm:px-6 md:px-20 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-[1000] gap-2">
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <img src={kolisaLogo} alt="KOLISA Logo" className="h-8 w-8 sm:h-10 sm:w-10 object-contain" />
-          <h1 className="text-xl sm:text-2xl font-black tracking-tighter text-secondary">KOLISA</h1>
-        </div>
+        <KolisaLogo size="sm" />
         <div className="flex items-center gap-2 sm:gap-6 shrink-0">
           <button onClick={() => setLocation('/login')} className="text-xs sm:text-sm font-bold text-secondary whitespace-nowrap" data-testid="link-header-login">Connexion</button>
           <button onClick={() => setLocation('/register')} className="bg-primary text-secondary px-3 sm:px-6 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-sm font-black uppercase tracking-wider sm:tracking-widest hover:bg-primary/90 transition-colors whitespace-nowrap" data-testid="link-header-register">S'inscrire</button>
@@ -85,11 +82,9 @@ export default function WelcomePage() {
                 <span className="text-primary italic font-black">express</span> à<br />
                 Kinshasa
               </h2>
-              <img 
-                src={kolisaLogo} 
-                alt="Logo" 
-                className="absolute -top-6 -left-6 w-16 h-16 opacity-10 -rotate-12 z-0" 
-              />
+              <div className="absolute -top-6 -left-6 opacity-10 -rotate-12 z-0">
+                <KolisaLogo size="lg" showText={false} />
+              </div>
             </div>
             <p className="text-lg text-gray-500 font-medium max-w-md">
               Envoyez et recevez vos colis partout dans la ville. Suivi en temps réel.

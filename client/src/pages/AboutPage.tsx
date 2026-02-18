@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import KolisaLogo from "@/components/KolisaLogo";
 
 export default function AboutPage() {
   const [, setLocation] = useLocation();
@@ -8,7 +9,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
       <header className="bg-white border-b border-gray-100 px-6 md:px-20 py-4 flex items-center justify-between sticky top-0 z-50">
-        <h1 className="text-xl font-black tracking-tighter text-secondary">KOLISA</h1>
+        <KolisaLogo size="sm" />
         <Button variant="ghost" onClick={() => setLocation('/welcome')} className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" /> Retour
         </Button>

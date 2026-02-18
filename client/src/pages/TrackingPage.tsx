@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { Delivery } from "@shared/schema";
-import kolisaLogo from "@/assets/kolisa-k-moto-logo.png";
+import KolisaLogo from "@/components/KolisaLogo";
 import confetti from "canvas-confetti";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -235,8 +235,7 @@ export default function TrackingPage() {
     <div className="min-h-screen bg-[#FDFCF8] font-sans">
       <header className="bg-white/90 backdrop-blur-md border-b border-gray-100 px-6 md:px-16 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <img src={kolisaLogo} alt="KOLISA" className="h-8 w-8 object-contain" />
-          <h1 className="text-xl font-black tracking-tighter text-secondary">KOLISA</h1>
+          <KolisaLogo size="sm" />
           <span className="text-xs font-bold text-primary ml-1">Tracking</span>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setLocation('/welcome')} className="text-gray-500 font-bold text-xs" data-testid="button-back">

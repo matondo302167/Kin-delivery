@@ -2,6 +2,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Package, ShieldCheck, Zap } from "lucide-react";
 import sellerIllustration from "@/assets/seller-illustration.png";
+import KolisaLogo from "@/components/KolisaLogo";
 
 export default function SellerDetailsPage() {
   const [, setLocation] = useLocation();
@@ -9,7 +10,7 @@ export default function SellerDetailsPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
       <header className="bg-white border-b border-gray-100 px-6 md:px-20 py-4 flex items-center justify-between sticky top-0 z-50">
-        <h1 className="text-xl font-black tracking-tighter text-secondary">KOLISA <span className="text-primary font-normal">Business</span></h1>
+        <KolisaLogo size="sm" subtitle="Business" />
         <Button variant="ghost" onClick={() => setLocation('/welcome')} className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" /> Retour
         </Button>

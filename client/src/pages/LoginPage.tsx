@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { getProfileByPhone, sendOtp, verifyOtp } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import kolisaLogo from "@/assets/kolisa-k-moto-logo.png";
+import KolisaLogo from "@/components/KolisaLogo";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -97,7 +97,9 @@ export default function LoginPage() {
         <Card className="w-full max-w-md border-none shadow-2xl rounded-[2.5rem] overflow-hidden">
           <CardContent className="p-8 md:p-12">
             <div className="text-center mb-8">
-              <img src={kolisaLogo} alt="KOLISA" className="h-16 mx-auto mb-6" />
+              <div className="flex justify-center mb-6">
+                <KolisaLogo size="xl" showText={false} />
+              </div>
               <h1 className="text-2xl font-black text-secondary tracking-tight mb-2">Connexion</h1>
               <p className="text-gray-500">
                 {step === 'phone' ? "Entrez votre numéro de téléphone pour recevoir un code" : "Entrez le code reçu par SMS"}

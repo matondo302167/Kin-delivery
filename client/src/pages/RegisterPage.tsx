@@ -12,7 +12,7 @@ import { registerSeller, createProfile, sendOtp, verifyOtp } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import kolisaLogo from "@/assets/kolisa-k-moto-logo.png";
+import KolisaLogo from "@/components/KolisaLogo";
 
 const SELLER_CATEGORIES = [
   { value: "mode", label: "Mode & Vêtements" },
@@ -145,9 +145,8 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-white flex flex-col md:flex-row">
       <div className="hidden md:flex md:w-1/2 bg-secondary text-white p-12 flex-col justify-between">
         <div>
-          <div className="flex items-center gap-3 mb-6">
-            <img src={kolisaLogo} alt="KOLISA" className="h-10 w-10 object-contain" />
-            <h1 className="text-4xl font-black tracking-tighter">KOLISA</h1>
+          <div className="mb-6">
+            <KolisaLogo size="xl" className="[&_span]:text-white" />
           </div>
           <p className="text-white/60 font-medium">Rejoignez la révolution logistique à Kinshasa.</p>
         </div>

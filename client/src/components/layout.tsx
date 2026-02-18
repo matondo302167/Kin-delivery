@@ -5,6 +5,7 @@ import { Package, Wallet, Truck, Map, LogOut, User, LayoutDashboard, Send, ListO
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import KolisaLogo from "@/components/KolisaLogo";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -59,17 +60,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#FDFCF8] pb-24 font-sans selection:bg-primary/30">
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border/40 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="bg-primary p-2 rounded-xl shadow-lg shadow-primary/20">
-            <LayoutDashboard className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black font-display text-secondary tracking-tight leading-none">
-              KOLISA
-            </h1>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">{roleLabel}</p>
-          </div>
-        </div>
+        <KolisaLogo size="sm" subtitle={roleLabel} />
 
         <div className="flex items-center gap-3">
           <Link href="/profile">
