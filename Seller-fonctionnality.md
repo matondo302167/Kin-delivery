@@ -1,4 +1,4 @@
-# Dashboard Vendeur Pro
+# Les Fonctionnalité des vendeurs (temporarie et professionnel)
 
 ## 1. Le Vendeur Temporaire 
 
@@ -11,7 +11,13 @@ L'objectif ici est la simplicité absolue. Il ne doit pas se sentir "obligé" de
 
 
 ## 2. Le Vendeur Pro (Tableau de Bord Business)
-C'est ici que ton schéma ´seller_details´ et transactions prend tout son sens.
 
+C'est ici que ton schéma `seller_details` et `transactions` prend tout son sens.
+- **Header** : Nom de sa boutique + Badge "Vérifié".
+- Widget Portefeuille : Affiche le Solde Disponible (issu de la fonction get_user_balance). Un bouton "Cash Out" bien visible.
+- **Stats** : Nombre de ventes du mois.
+  - Top communes de livraison (pour l'aider à savoir où sont ses clients).
+- **Gestion des Colis** : Une liste détaillée avec filtre (ex: "Voir uniquement les colis non payés").
+- **Action** : Possibilité de générer une étiquette ou un code QR pour le colis.
 
 
