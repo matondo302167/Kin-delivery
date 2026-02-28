@@ -350,12 +350,8 @@ export default function TrackingPage() {
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl p-5 shadow-sm border border-blue-50">
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Votre livreur</p>
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center overflow-hidden">
-                      {trackingData.driverAvatarUrl ? (
-                        <img src={trackingData.driverAvatarUrl} alt="Driver" className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="h-7 w-7 text-blue-400" />
-                      )}
+                    <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center" data-testid="driver-silhouette">
+                      <User className="h-7 w-7 text-blue-400" />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-black text-secondary text-base" data-testid="text-driver-name">

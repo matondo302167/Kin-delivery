@@ -4,7 +4,6 @@ import { useStore } from "@/lib/store";
 import { Package, Wallet, Truck, Map, LogOut, User, LayoutDashboard, Send, ListOrdered } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import KolisaLogo from "@/components/KolisaLogo";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -69,10 +68,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <p className="text-xs font-black text-secondary leading-none">{profile?.name || 'Utilisateur'}</p>
                 <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Profil</p>
               </div>
-              <Avatar className="h-9 w-9 border-2 border-white shadow-md ring-2 ring-primary/20">
-                <AvatarImage src={profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name || 'user'}`} />
-                <AvatarFallback><User /></AvatarFallback>
-              </Avatar>
+              <div className="h-9 w-9 border-2 border-white shadow-md ring-2 ring-primary/20 rounded-full bg-secondary/10 flex items-center justify-center" data-testid="header-profile-silhouette">
+                <User className="h-4 w-4 text-secondary/50" />
+              </div>
             </button>
           </Link>
           <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-full hover:bg-red-50 text-red-500">

@@ -7,8 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User, Phone, Mail, Camera, Save } from "lucide-react";
+import { User, Phone, Mail, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const profileSchema = z.object({
@@ -44,14 +43,10 @@ export default function ProfilePage() {
   return (
     <div className="space-y-8 pb-20">
       <div className="text-center space-y-4">
-        <div className="relative inline-block">
-          <Avatar className="h-32 w-32 border-4 border-white shadow-2xl ring-4 ring-primary/20 mx-auto">
-            <AvatarImage src={profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name || 'user'}`} />
-            <AvatarFallback><User size={48} /></AvatarFallback>
-          </Avatar>
-          <button className="absolute bottom-1 right-1 bg-primary p-3 rounded-full text-primary-foreground shadow-xl active:scale-90 transition-transform">
-            <Camera size={20} />
-          </button>
+        <div className="inline-block">
+          <div className="h-32 w-32 border-4 border-white shadow-2xl ring-4 ring-primary/20 mx-auto rounded-full bg-secondary/10 flex items-center justify-center" data-testid="profile-silhouette">
+            <User size={48} className="text-secondary/50" />
+          </div>
         </div>
         <div className="space-y-1">
           <h2 className="text-3xl font-black font-display text-secondary italic tracking-tighter uppercase">{profile?.name || 'Utilisateur'}</h2>
