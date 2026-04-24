@@ -40,12 +40,19 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
-  server: {
-    host: "0.0.0.0",
-    allowedHosts: true,
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
-  },
+   server: {
+     host: "0.0.0.0",
+     allowedHosts: true,
+     fs: {
+       strict: true,
+       deny: ["**/.*"],
+     },
+     proxy: {
+       "/api": {
+         target: `http://127.0.0.1:${process.env.PORT || 3001}`,
+         changeOrigin: true,
+         secure: false,
+       },
+     },
+   },
 });
