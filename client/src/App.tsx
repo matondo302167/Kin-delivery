@@ -32,7 +32,10 @@ function Router() {
     <Switch>
       <Route path="/welcome" component={WelcomePage} />
       <Route path="/register" component={RegisterPage} />
-      <Route path="/login" component={LoginPage} />
+      {/* Bloquer l'accès à la page de connexion si l'utilisateur est déjà connecté */}
+      <Route path="/login">
+        {userRole ? <Redirect to="/" /> : <LoginPage />}
+      </Route>
       <Route path="/seller-details" component={SellerDetailsPage} />
       <Route path="/courier-details" component={CourierDetailsPage} />
       <Route path="/about" component={AboutPage} />

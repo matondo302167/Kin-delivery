@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,8 @@ import KolisaLogo from "@/components/KolisaLogo";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
-  const { setProfile } = useStore();
+  const { userRole } = useStore();
+  const { setProfile, logout } = useStore();
   const { toast } = useToast();
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -20,12 +21,49 @@ export default function LoginPage() {
   const [otpCode, setOtpCode] = useState("");
   const [isSendingOtp, setIsSendingOtp] = useState(false);
 
+  // Empêcher les utilisateurs connectés d'accéder à cette page
+  useEffect(() => {
+    if (userRole) {
+      setLocation('/');
+    }
+  }, [userRole, setLocation]);
+
+  // Bloquer la flèche retour du navigateur pour les pages d'authentification
+  useEffect(() => {
+    // Remplacer l'état de l'historique pour éviter de revenir à cette page
+    window.history.replaceState(null, '', window.location.pathname);
+
+    const handlePopState = (event: PopStateEvent) => {
+      // Si un utilisateur essaie de revenir avec la flèche retour, rediriger vers la page d'accueil
+      if (userRole) {
+        setLocation('/');
+        window.history.replaceState(null, '', '/');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [userRole, setLocation]);
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.length < 9) {
-      toast({ title: "Numéro invalide", description: "Veuillez entrer un numéro de téléphone valide", variant: "destructive" });
+
+    // Validation du numéro de téléphone (doit avoir au moins 12 caractères)
+    if (phone.length < 12) {
+      toast({ title: "Numéro invalide", description: "Le numéro doit contenir au moins 12 caractères (y compris le préfixe)", variant: "destructive" });
       return;
     }
+
+    // Vérifier si le numéro existe déjà avant d'envoyer l'OTP
+    try {
+      await getProfileByPhone(phone);
+      // Si on arrive ici, le numéro existe, on peut envoyer l'OTP
+    } catch (error) {
+      // Si le numéro n'existe pas, bloquer l'envoi d'OTP
+      toast({ title: "Numéro non enregistré", description: "Ce numéro n'est pas enregistré. Veuillez créer un compte d'abord.", variant: "destructive" });
+      return;
+    }
+
     setIsSendingOtp(true);
     try {
       await sendOtp(phone);
@@ -112,7 +150,7 @@ export default function LoginPage() {
                   <label className="text-sm font-bold text-gray-700">Numéro de téléphone</label>
                   <PhoneInput value={phone} onChange={setPhone} placeholder="812345678" autoFocus data-testid="input-phone" />
                 </div>
-                <Button type="submit" disabled={isSendingOtp || phone.length < 9}
+                <Button type="submit" disabled={isSendingOtp || phone.length < 12}
                   className="w-full h-14 rounded-xl bg-secondary hover:bg-secondary/90 text-white font-bold text-base gap-2" data-testid="button-send-otp">
                   {isSendingOtp ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Envoyer le code <ArrowRight className="h-5 w-5" /></>}
                 </Button>
