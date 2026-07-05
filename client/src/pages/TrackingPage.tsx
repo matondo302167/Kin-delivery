@@ -12,6 +12,7 @@ import KolisaLogo from "@/components/KolisaLogo";
 import confetti from "canvas-confetti";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useDeliveryUpdates, type DeliveryUpdate } from "@/hooks/use-delivery-updates";
 
 type TrackingData = Delivery & {
   driverName?: string;
@@ -61,19 +62,11 @@ export default function TrackingPage() {
   const deliveryMarkerRef = useRef<any>(null);
   const confettiFired = useRef(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id") || params.get("token");
-    if (id) { setSearchId(id); handleSearch(id); }
-  }, []);
-
-  useEffect(() => {
-    if (!trackingData || trackingData.status === 'delivered') return;
-    const interval = setInterval(() => {
-      handleSearch(trackingData.id);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [trackingData?.id, trackingData?.status]);
+   useEffect(() => {
+     const params = new URLSearchParams(window.location.search);
+     const id = params.get("id") || params.get("token");
+     if (id) { setSearchId(id); handleSearch(id); }
+   }, []);
 
   useEffect(() => {
     if (trackingData?.status === 'delivered' && !confettiFired.current) {
@@ -179,25 +172,52 @@ export default function TrackingPage() {
     };
   }, []);
 
-  const handleSearch = async (id?: string) => {
-    const idToSearch = id || searchId;
-    if (!idToSearch) return;
-    setIsSearching(true);
-    setNotFound(false);
-    try {
-      const data = await getDeliveryTracking(idToSearch);
-      setTrackingData(data);
-      if (data.driverRating && data.driverRating > 0) {
-        setRatingSubmitted(true);
-        setSelectedRating(data.driverRating);
-      }
-    } catch (err) {
-      setTrackingData(null);
-      setNotFound(true);
-    } finally {
-      setIsSearching(false);
-    }
-  };
+   const handleSearch = async (id?: string) => {
+     const idToSearch = id || searchId;
+     if (!idToSearch) return;
+     setIsSearching(true);
+     setNotFound(false);
+     try {
+       const data = await getDeliveryTracking(idToSearch);
+       setTrackingData(data);
+       if (data.driverRating && data.driverRating > 0) {
+         setRatingSubmitted(true);
+         setSelectedRating(data.driverRating);
+       }
+     } catch (err) {
+       setTrackingData(null);
+       setNotFound(true);
+     } finally {
+       setIsSearching(false);
+     }
+   };
+
+   // Handle WebSocket updates for real-time delivery tracking
+   const handleDeliveryUpdate = async (update: DeliveryUpdate) => {
+     if (update.type === 'status_change' || update.type === 'delivery_update') {
+       // Fetch the latest data to ensure consistency
+       if (trackingData?.id) {
+         try {
+           const updatedData = await getDeliveryTracking(trackingData.id);
+           setTrackingData(updatedData);
+         } catch (err) {
+           console.error('Failed to fetch updated delivery:', err);
+         }
+       }
+     } else if (update.type === 'location_update') {
+       // Update driver location in real-time without full fetch
+       if (trackingData && update.driverId === trackingData.driverId) {
+         setTrackingData(prev => prev ? {
+           ...prev,
+           driverLat: update.latitude,
+           driverLng: update.longitude
+         } : null);
+       }
+     }
+   };
+
+   // Connect to WebSocket for real-time updates when we have a tracking ID
+   useDeliveryUpdates(trackingData?.id, undefined, handleDeliveryUpdate);
 
   const handleRate = async () => {
     if (!trackingData || selectedRating === 0) return;

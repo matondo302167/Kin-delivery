@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useStore } from "@/lib/store";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { fr } from "date-fns/locale";
 import { getSellerDetails, getSellerStats, listDeliveries, listTransactions } from "@/lib/api";
 import type { Delivery, Transaction } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { useDeliveryUpdates, type DeliveryUpdate } from "@/hooks/use-delivery-updates";
 
 export default function ProDashboardPage() {
   const { profile } = useStore();
@@ -29,35 +30,44 @@ export default function ProDashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
-  const [qrDeliveryId, setQrDeliveryId] = useState<string | null>(null);
+   const [qrDeliveryId, setQrDeliveryId] = useState<string | null>(null);
 
-  const loadData = async () => {
-    if (!profile?.id) return;
-    try {
-      const [details, statsData, delivList, txList, communesRes] = await Promise.all([
-        getSellerDetails(profile.id).catch(() => null),
-        getSellerStats(profile.id),
-        listDeliveries({ sellerId: profile.id }),
-        listTransactions(profile.id),
-        fetch(`/api/seller/${profile.id}/top-communes`).then(r => r.json()).catch(() => []),
-      ]);
-      setShopDetails(details);
-      setStats(statsData);
-      setDeliveries(delivList);
-      setTransactions(txList);
-      setTopCommunes(communesRes);
-    } catch (error) {
-      console.error("Failed to load pro dashboard data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+   const loadData = useCallback(async () => {
+     if (!profile?.id) return;
+     try {
+       const [details, statsData, delivList, txList, communesRes] = await Promise.all([
+         getSellerDetails(profile.id).catch(() => null),
+         getSellerStats(profile.id),
+         listDeliveries({ sellerId: profile.id }),
+         listTransactions(profile.id),
+         fetch(`/api/seller/${profile.id}/top-communes`).then(r => r.json()).catch(() => []),
+       ]);
+       setShopDetails(details);
+       setStats(statsData);
+       setDeliveries(delivList);
+       setTransactions(txList);
+       setTopCommunes(communesRes);
+     } catch (error) {
+       console.error("Failed to load pro dashboard data:", error);
+     } finally {
+       setIsLoading(false);
+     }
+   }, [profile?.id]);
 
-  useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 15000);
-    return () => clearInterval(interval);
-  }, [profile?.id]);
+   useEffect(() => {
+     loadData();
+   }, [loadData]);
+
+   // Handle real-time delivery updates
+   const handleDeliveryUpdate = (update: DeliveryUpdate) => {
+     if (update.type === 'status_change' || update.type === 'delivery_update') {
+       // Reload data when delivery status changes
+       loadData();
+     }
+   };
+
+   // Subscribe to delivery updates
+   useDeliveryUpdates(undefined, undefined, handleDeliveryUpdate);
 
   const totalBalance = transactions.reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
 

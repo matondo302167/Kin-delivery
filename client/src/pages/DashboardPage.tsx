@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { listDeliveries, acceptDelivery, updateDeliveryPhoto, validateDelivery, uploadFile, getDriverDetails, updateDriverAvailability, updateDriverLocation, getDriverStats, createCashoutRequest } from "@/lib/api";
 import type { Delivery } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDeliveryUpdates, type DeliveryUpdate } from "@/hooks/use-delivery-updates";
 
 export default function DashboardPage() {
   const { profile } = useStore();
@@ -37,35 +38,44 @@ export default function DashboardPage() {
   const [cashoutAmount, setCashoutAmount] = useState("");
   const [isSubmittingCashout, setIsSubmittingCashout] = useState(false);
 
-  const loadAll = useCallback(async () => {
-    if (!profile?.id) return;
-    try {
-      setIsLoading(true);
-      const [pending, inTransit, delivered, driverDet, driverStats] = await Promise.all([
-        listDeliveries({ status: "pending" }),
-        listDeliveries({ driverId: profile.id, status: "in_transit" }),
-        listDeliveries({ driverId: profile.id, status: "delivered" }),
-        getDriverDetails(profile.id),
-        getDriverStats(profile.id),
-      ]);
-      setAvailableDeliveries(pending);
-      setMyMissions(inTransit);
-      setDeliveredMissions(delivered);
-      setIsActive(driverDet?.isActive ?? false);
-      setVehicleType(driverDet?.vehicleType ?? "moto");
-      setStats(driverStats);
-    } catch (error) {
-      console.error("Failed to load:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [profile?.id]);
+   const loadAll = useCallback(async () => {
+     if (!profile?.id) return;
+     try {
+       setIsLoading(true);
+       const [pending, inTransit, delivered, driverDet, driverStats] = await Promise.all([
+         listDeliveries({ status: "pending" }),
+         listDeliveries({ driverId: profile.id, status: "in_transit" }),
+         listDeliveries({ driverId: profile.id, status: "delivered" }),
+         getDriverDetails(profile.id),
+         getDriverStats(profile.id),
+       ]);
+       setAvailableDeliveries(pending);
+       setMyMissions(inTransit);
+       setDeliveredMissions(delivered);
+       setIsActive(driverDet?.isActive ?? false);
+       setVehicleType(driverDet?.vehicleType ?? "moto");
+       setStats(driverStats);
+     } catch (error) {
+       console.error("Failed to load:", error);
+     } finally {
+       setIsLoading(false);
+     }
+   }, [profile?.id]);
 
-  useEffect(() => {
-    loadAll();
-    const interval = setInterval(loadAll, 10000);
-    return () => clearInterval(interval);
-  }, [loadAll]);
+   useEffect(() => {
+     loadAll();
+   }, [loadAll]);
+
+   // Handle real-time delivery updates
+   const handleDeliveryUpdate = (update: DeliveryUpdate) => {
+     if (update.type === 'status_change' || update.type === 'delivery_update') {
+       // Reload all data when delivery status changes
+       loadAll();
+     }
+   };
+
+   // Subscribe to updates for the driver's current missions
+   useDeliveryUpdates(undefined, profile?.id, handleDeliveryUpdate);
 
   useEffect(() => {
     if (!profile?.id || !isActive) return;

@@ -7,6 +7,7 @@ import { insertDeliverySchema, insertProfileSchema } from "@shared/schema";
 import { z } from "zod";
 import { sendPinCodeSms, sendDeliveryConfirmationSms, sendPhoneVerificationSms } from "./services/twilioService";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { wsManager } from "./websocket";
 
 function generateOtpCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -288,21 +289,31 @@ export async function registerRoutes(
       console.error("Availability update error:", error);
       res.status(500).json({ error: "Failed to update availability" });
     }
-  });
+   });
 
-  app.post("/api/driver/:id/location", async (req, res) => {
-    try {
-      const { latitude, longitude } = req.body;
-      if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-        return res.status(400).json({ error: "Invalid coordinates" });
-      }
-      const location = await storage.updateDriverLocation(req.params.id, latitude, longitude);
-      res.json(location);
-    } catch (error) {
-      console.error("Location update error:", error);
-      res.status(500).json({ error: "Failed to update location" });
-    }
-  });
+   app.post("/api/driver/:id/location", async (req, res) => {
+     try {
+       const { latitude, longitude } = req.body;
+       if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+         return res.status(400).json({ error: "Invalid coordinates" });
+       }
+       const location = await storage.updateDriverLocation(req.params.id, latitude, longitude);
+
+       // Notify driver's connected clients about location update
+       wsManager.notifyDriverUpdate(req.params.id, {
+         type: 'location_update',
+         driverId: req.params.id,
+         latitude,
+         longitude,
+         timestamp: new Date().toISOString()
+       });
+
+       res.json(location);
+     } catch (error) {
+       console.error("Location update error:", error);
+       res.status(500).json({ error: "Failed to update location" });
+     }
+   });
 
   app.get("/api/driver/:id/stats", async (req, res) => {
     try {

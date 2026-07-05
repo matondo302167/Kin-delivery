@@ -7,6 +7,7 @@ import PhoneInput from "@/components/PhoneInput";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AddressForm from "@/components/AddressForm";
 import { Check, Truck, Store, MapPin, Tag, Crown, Loader2 } from "lucide-react";
 import { registerSeller, createProfile, sendOtp, verifyOtp } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -179,7 +180,7 @@ export default function RegisterPage() {
 		// Remplacer l'état de l'historique pour éviter de revenir à cette page
 		window.history.replaceState(null, "", window.location.pathname);
 
-		const handlePopState = (event: PopStateEvent) => {
+		const handlePopState = () => {
 			// Si un utilisateur essaie de revenir avec la flèche retour, rediriger vers la page d'accueil
 			const user = localStorage.getItem("user");
 			if (user) {
@@ -352,13 +353,11 @@ export default function RegisterPage() {
 										<MapPin className="h-4 w-4 text-primary" /> Adresse de la
 										boutique
 									</Label>
-									<Input
-										id="shopAddress"
-										name="shopAddress"
-										placeholder="Ex: Avenue Kasa-Vubu, Bandalungwa"
+									<AddressForm
 										value={formData.shopAddress}
-										onChange={handleChange}
-										className="h-12 rounded-xl"
+										onChange={(val) => setFormData({ ...formData, shopAddress: val })}
+										placeholder="Cliquer pour sélectionner"
+										label=""
 										data-testid="input-shop-address"
 									/>
 								</div>

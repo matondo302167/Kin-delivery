@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import PhoneInput from "@/components/PhoneInput";
+import AddressForm from "@/components/AddressForm";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -36,18 +37,16 @@ export default function OrderPage() {
   const [, setLocation] = useLocation();
   const [showForm, setShowForm] = useState(false);
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
-  const [showNameDialog, setShowNameDialog] = useState(false);
-  const [dialogPhone, setDialogPhone] = useState("");
-  const [dialogName, setDialogName] = useState("");
-  const [isChecking, setIsChecking] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [dialogOtpStep, setDialogOtpStep] = useState(false);
-  const [dialogOtpCode, setDialogOtpCode] = useState("");
-  const [isSendingDialogOtp, setIsSendingDialogOtp] = useState(false);
-  const [pendingFormValues, setPendingFormValues] = useState<z.infer<typeof formSchema> | null>(null);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [activeField, setActiveField] = useState<'pickup' | 'delivery' | null>(null);
-  const [myDeliveries, setMyDeliveries] = useState<Delivery[]>([]);
+   const [showNameDialog, setShowNameDialog] = useState(false);
+   const [dialogPhone, setDialogPhone] = useState("");
+   const [dialogName, setDialogName] = useState("");
+   const [isChecking, setIsChecking] = useState(false);
+   const [isCreating, setIsCreating] = useState(false);
+   const [dialogOtpStep, setDialogOtpStep] = useState(false);
+   const [dialogOtpCode, setDialogOtpCode] = useState("");
+   const [isSendingDialogOtp, setIsSendingDialogOtp] = useState(false);
+   const [pendingFormValues, setPendingFormValues] = useState<z.infer<typeof formSchema> | null>(null);
+   const [myDeliveries, setMyDeliveries] = useState<Delivery[]>([]);
   const [isLoadingDeliveries, setIsLoadingDeliveries] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -100,19 +99,9 @@ export default function OrderPage() {
         }
       );
     }
-  }, []);
+   }, []);
 
-  const handleAddressChange = async (value: string) => {
-    if (value.length > 2) {
-      try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}+Kinshasa&countrycodes=cd&limit=5`);
-        const data = await response.json();
-        setSuggestions(data.map((item: any) => item.display_name));
-      } catch (e) { setSuggestions([]); }
-    } else { setSuggestions([]); }
-  };
-
-  async function submitDelivery(values: z.infer<typeof formSchema>, sellerId?: string) {
+   async function submitDelivery(values: z.infer<typeof formSchema>, sellerId?: string) {
     setIsSubmitting(true);
     try {
       const result = await createDelivery({
@@ -426,59 +415,39 @@ export default function OrderPage() {
             )} />
           </div>
 
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-              <MapPin className="h-3 w-3" /> Adresses
-            </p>
-            <FormField control={form.control} name="pickupAddress" render={({ field }) => (
-              <FormItem className="relative">
-                <FormControl>
-                  <div className="relative">
-                    <div className="absolute left-3 top-3.5 w-2.5 h-2.5 rounded-full bg-black ring-4 ring-white z-10" />
-                    <Input placeholder="Adresse de départ" className={cn("pl-10 h-12 bg-gray-50 border-0 rounded-xl font-medium", activeField === 'pickup' && "ring-2 ring-primary")}
-                      {...field} onChange={(e) => { field.onChange(e); handleAddressChange(e.target.value); }}
-                      onFocus={() => setActiveField('pickup')} onBlur={() => setTimeout(() => setActiveField(null), 200)}
-                      data-testid="input-pickup" />
-                    {activeField === 'pickup' && suggestions.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-50 mt-1 border max-h-48 overflow-y-auto">
-                        {suggestions.map((s, i) => (
-                          <div key={i} className="p-3 hover:bg-gray-50 cursor-pointer text-sm flex items-center gap-2"
-                            onMouseDown={(e) => { e.preventDefault(); form.setValue("pickupAddress", s); setSuggestions([]); setActiveField(null); }}>
-                            <MapPin className="h-3 w-3 text-gray-400 shrink-0" /><span className="truncate">{s}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            <FormField control={form.control} name="deliveryAddress" render={({ field }) => (
-              <FormItem className="relative">
-                <FormControl>
-                  <div className="relative">
-                    <div className="absolute left-3 top-3.5 w-2.5 h-2.5 bg-primary ring-4 ring-white z-10" />
-                    <Input placeholder="Adresse de livraison" className={cn("pl-10 h-12 bg-gray-50 border-0 rounded-xl font-medium", activeField === 'delivery' && "ring-2 ring-primary")}
-                      {...field} onChange={(e) => { field.onChange(e); handleAddressChange(e.target.value); }}
-                      onFocus={() => setActiveField('delivery')} onBlur={() => setTimeout(() => setActiveField(null), 200)}
-                      data-testid="input-delivery" />
-                    {activeField === 'delivery' && suggestions.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-xl z-50 mt-1 border max-h-48 overflow-y-auto">
-                        {suggestions.map((s, i) => (
-                          <div key={i} className="p-3 hover:bg-gray-50 cursor-pointer text-sm flex items-center gap-2"
-                            onMouseDown={(e) => { e.preventDefault(); form.setValue("deliveryAddress", s); setSuggestions([]); setActiveField(null); }}>
-                            <MapPin className="h-3 w-3 text-gray-400 shrink-0" /><span className="truncate">{s}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-          </div>
+           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+               <MapPin className="h-3 w-3" /> Adresses
+             </p>
+             <FormField control={form.control} name="pickupAddress" render={({ field }) => (
+               <FormItem>
+                 <FormControl>
+                   <AddressForm
+                     value={field.value}
+                     onChange={field.onChange}
+                     label="Adresse de départ"
+                     placeholder="Cliquer pour sélectionner"
+                     data-testid="input-pickup"
+                   />
+                 </FormControl>
+                 <FormMessage />
+               </FormItem>
+             )} />
+             <FormField control={form.control} name="deliveryAddress" render={({ field }) => (
+               <FormItem>
+                 <FormControl>
+                   <AddressForm
+                     value={field.value}
+                     onChange={field.onChange}
+                     label="Adresse de livraison"
+                     placeholder="Cliquer pour sélectionner"
+                     data-testid="input-delivery"
+                   />
+                 </FormControl>
+                 <FormMessage />
+               </FormItem>
+             )} />
+           </div>
 
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
