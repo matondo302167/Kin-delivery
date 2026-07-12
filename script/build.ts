@@ -36,7 +36,10 @@ async function buildAll() {
   await rm("dist", { recursive: true, force: true });
 
   console.log("building client...");
-  await viteBuild();
+  // Allow overriding the Vite `base` at build time (used for GitHub Pages)
+  // e.g. set VITE_BASE="/repo-name/" in CI before running the build.
+  const viteBase = process.env.VITE_BASE;
+  await viteBuild(viteBase ? { base: viteBase } : undefined);
 
   console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
