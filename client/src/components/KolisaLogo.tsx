@@ -20,7 +20,8 @@ export default function KolisaLogo({ size = "md", showText = true, subtitle, cla
   return (
     <div className={cn("flex items-center gap-2.5", className)} data-testid="kolisa-logo">
       <img
-        src="/icons/icon-192x192.png"
+        // Use Vite base so asset path works on GitHub Pages (import.meta.env.BASE_URL is set at build)
+        src={`${import.meta.env.BASE_URL}icons/icon-192x192.png`}
         alt="KOLISA Logo"
         width={s.icon}
         height={s.icon}
