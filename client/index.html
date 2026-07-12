@@ -36,7 +36,9 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="%BASE_URL%src/main.tsx"></script>
+    <!-- Use a relative module entry so Vite can resolve the file during build.
+         The final built HTML will still have asset URLs prefixed with the configured base. -->
+    <script type="module" src="src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
