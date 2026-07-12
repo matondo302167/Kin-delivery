@@ -35,6 +35,7 @@ export default function OrderPage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [, setLocation] = useLocation();
+  const BASE = import.meta.env.BASE_URL || "/";
   const [showForm, setShowForm] = useState(false);
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
    const [showNameDialog, setShowNameDialog] = useState(false);
@@ -121,10 +122,10 @@ export default function OrderPage() {
       await loadDeliveries();
     } catch (error: any) {
       const msg = error.message || "Impossible de créer la commande";
-      if (msg.includes("session") || msg.includes("reconnecter")) {
+        if (msg.includes("session") || msg.includes("reconnecter")) {
         logout();
         toast({ title: "Session expirée", description: "Veuillez vous reconnecter.", variant: "destructive" });
-        setLocation("/login");
+          setLocation(`${BASE}login`);
         return;
       }
       toast({ title: "Erreur", description: msg, variant: "destructive" });
@@ -190,9 +191,9 @@ export default function OrderPage() {
       toast({ title: "Connexion réussie", description: `Bienvenue ${foundProfile.fullName}!` });
       setDialogPhone("");
       setDialogOtpCode("");
-      if (foundProfile.role === 'driver') {
+       if (foundProfile.role === 'driver') {
         setPendingFormValues(null);
-        setLocation("/");
+        setLocation(BASE);
         return;
       }
       if (pendingFormValues) {
@@ -338,7 +339,7 @@ export default function OrderPage() {
               {myDeliveries.slice(0, 10).map((d) => (
                 <div
                   key={d.id}
-                  onClick={() => setLocation(`/tracking?id=${d.id}`)}
+                   onClick={() => setLocation(`${BASE}tracking?id=${d.id}`)}
                   className="bg-white rounded-2xl p-4 border border-gray-50 shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-primary/20 active:scale-[0.98] transition-all"
                   data-testid={`card-delivery-${d.id}`}
                 >

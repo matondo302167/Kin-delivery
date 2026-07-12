@@ -14,6 +14,7 @@ import KolisaLogo from "@/components/KolisaLogo";
 
 export default function WelcomePage() {
   const [, setLocation] = useLocation();
+  const BASE = import.meta.env.BASE_URL || "/";
   const [trackingCode, setTrackingCode] = useState("");
   const { toast } = useToast();
   const [locationName, setLocationName] = useState("Kinshasa, RDC");
@@ -50,7 +51,7 @@ export default function WelcomePage() {
 
   const handleTrack = () => {
     if (trackingCode.trim()) {
-      setLocation(`/tracking?token=${trackingCode.trim().toUpperCase()}`);
+      setLocation(`${BASE}tracking?token=${trackingCode.trim().toUpperCase()}`);
     } else {
       toast({
         title: "Code requis",
@@ -65,8 +66,8 @@ export default function WelcomePage() {
       <header className="bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 sm:px-6 md:px-20 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-[1000] gap-2">
         <KolisaLogo size="sm" />
         <div className="flex items-center gap-2 sm:gap-6 shrink-0">
-          <button onClick={() => setLocation('/login')} className="text-xs sm:text-sm font-bold text-secondary whitespace-nowrap" data-testid="link-header-login">Connexion</button>
-          <button onClick={() => setLocation('/register')} className="bg-primary text-secondary px-3 sm:px-6 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-sm font-black uppercase tracking-wider sm:tracking-widest hover:bg-primary/90 transition-colors whitespace-nowrap" data-testid="link-header-register">S'inscrire</button>
+          <button onClick={() => setLocation(`${BASE}login`)} className="text-xs sm:text-sm font-bold text-secondary whitespace-nowrap" data-testid="link-header-login">Connexion</button>
+          <button onClick={() => setLocation(`${BASE}register`)} className="bg-primary text-secondary px-3 sm:px-6 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-sm font-black uppercase tracking-wider sm:tracking-widest hover:bg-primary/90 transition-colors whitespace-nowrap" data-testid="link-header-register">S'inscrire</button>
         </div>
       </header>
 
@@ -140,14 +141,14 @@ export default function WelcomePage() {
               </p>
               <div className="flex items-center gap-6 pt-4">
                 <Button 
-                  onClick={() => setLocation('/order')}
+                  onClick={() => setLocation(`${BASE}order`)}
                   className="bg-black text-white hover:bg-gray-800 px-10 h-14 rounded-xl font-black uppercase tracking-widest text-xs"
                   data-testid="button-send-parcel"
                 >
                   Envoyer un colis
                 </Button>
-                <button 
-                  onClick={() => setLocation('/seller-details')}
+                 <button
+                   onClick={() => setLocation(`${BASE}seller-details`)}
                   className="text-sm font-black underline decoration-2 underline-offset-8 hover:text-primary transition-colors"
                 >
                   Détails
@@ -169,13 +170,13 @@ export default function WelcomePage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-12">
-            <div className="bg-[#F6F6F6] p-12 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 group cursor-pointer hover:shadow-xl transition-all" onClick={() => setLocation('/courier-details')}>
+            <div className="bg-[#F6F6F6] p-12 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 group cursor-pointer hover:shadow-xl transition-all" onClick={() => setLocation(`${BASE}courier-details`)}>
               <div className="flex-1 space-y-4">
                 <h4 className="text-3xl font-black tracking-tighter text-secondary">Devenir Livreur</h4>
                 <p className="text-sm text-gray-500 font-medium">Gagnez de l'argent en livrant selon votre propre horaire.</p>
                 <div className="flex gap-4">
-                  <Button onClick={(e) => { e.stopPropagation(); setLocation('/login'); }} variant="outline" className="rounded-full px-6 font-bold group-hover:bg-black group-hover:text-white transition-all">Se connecter</Button>
-                  <Button onClick={(e) => { e.stopPropagation(); setLocation('/courier-details'); }} variant="ghost" className="rounded-full px-4 font-bold text-gray-500 hover:text-black">Détails</Button>
+                   <Button onClick={(e) => { e.stopPropagation(); setLocation(`${BASE}login`); }} variant="outline" className="rounded-full px-6 font-bold group-hover:bg-black group-hover:text-white transition-all">Se connecter</Button>
+                   <Button onClick={(e) => { e.stopPropagation(); setLocation(`${BASE}courier-details`); }} variant="ghost" className="rounded-full px-4 font-bold text-gray-500 hover:text-black">Détails</Button>
                 </div>
               </div>
               <div className="w-40 h-32 flex items-center justify-center">
@@ -183,11 +184,11 @@ export default function WelcomePage() {
               </div>
             </div>
 
-            <div className="bg-[#F6F6F6] p-12 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 group cursor-pointer hover:shadow-xl transition-all" onClick={() => setLocation('/seller-details')}>
+            <div className="bg-[#F6F6F6] p-12 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 group cursor-pointer hover:shadow-xl transition-all" onClick={() => setLocation(`${BASE}seller-details`)}>
               <div className="flex-1 space-y-4">
                 <h4 className="text-3xl font-black tracking-tighter text-secondary">Vendre en ligne</h4>
                 <p className="text-sm text-gray-500 font-medium">Boostez votre business avec notre logistique express.</p>
-                <Button onClick={(e) => { e.stopPropagation(); setLocation('/login'); }} variant="outline" className="rounded-full px-6 font-bold group-hover:bg-black group-hover:text-white transition-all">Se connecter</Button>
+                <Button onClick={(e) => { e.stopPropagation(); setLocation(`${BASE}login`); }} variant="outline" className="rounded-full px-6 font-bold group-hover:bg-black group-hover:text-white transition-all">Se connecter</Button>
               </div>
               <div className="w-40 h-32 flex items-center justify-center">
                 <img src={sellerIllustration} alt="Vendeur" className="w-full h-full object-contain" />
@@ -208,13 +209,13 @@ export default function WelcomePage() {
             </p>
             <div className="flex items-center gap-8">
               <Button 
-                onClick={() => setLocation('/login')} 
+                onClick={() => setLocation(`${BASE}login`)}
                 className="bg-black text-white hover:bg-gray-800 px-10 h-14 rounded-xl font-black uppercase tracking-widest text-xs"
               >
                 Se connecter
               </Button>
               <button 
-                onClick={() => setLocation('/register')}
+                onClick={() => setLocation(`${BASE}register`)}
                 className="text-sm font-black underline decoration-2 underline-offset-8 hover:text-primary transition-colors"
               >
                 Créer un compte
@@ -237,9 +238,9 @@ export default function WelcomePage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-12">
             <div className="space-y-4">
               <p className="font-black uppercase tracking-widest text-[10px] text-white/40">Entreprise</p>
-              <p onClick={() => setLocation('/about')} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">À propos</p>
-              <p onClick={() => setLocation('/pricing')} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Tarifs</p>
-              <p onClick={() => setLocation('/company')} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Info Légal</p>
+              <p onClick={() => setLocation(`${BASE}about`)} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">À propos</p>
+              <p onClick={() => setLocation(`${BASE}pricing`)} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Tarifs</p>
+              <p onClick={() => setLocation(`${BASE}company`)} className="text-sm font-medium hover:text-primary cursor-pointer transition-colors">Info Légal</p>
             </div>
             <div className="space-y-4">
               <p className="font-black uppercase tracking-widest text-[10px] text-white/40">Produit</p>

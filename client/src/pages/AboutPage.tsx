@@ -5,12 +5,13 @@ import KolisaLogo from "@/components/KolisaLogo";
 
 export default function AboutPage() {
   const [, setLocation] = useLocation();
+  const BASE = import.meta.env.BASE_URL || "/";
 
   return (
     <div className="min-h-screen bg-white font-sans">
       <header className="bg-white border-b border-gray-100 px-6 md:px-20 py-4 flex items-center justify-between sticky top-0 z-50">
         <KolisaLogo size="sm" />
-        <Button variant="ghost" onClick={() => setLocation('/welcome')} className="flex items-center gap-2">
+        <Button variant="ghost" onClick={() => setLocation(`${BASE}welcome`)} className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" /> Retour
         </Button>
       </header>

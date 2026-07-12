@@ -27,63 +27,64 @@ import SellerPackagesPage from "@/pages/SellerPackagesPage";
 
 function Router() {
   const { userRole } = useStore();
+  const BASE = import.meta.env.BASE_URL || "/";
 
   return (
     <Switch>
-      <Route path="/welcome" component={WelcomePage} />
-      <Route path="/register" component={RegisterPage} />
+      <Route path={`${BASE}welcome`} component={WelcomePage} />
+      <Route path={`${BASE}register`} component={RegisterPage} />
       {/* Bloquer l'accès à la page de connexion si l'utilisateur est déjà connecté */}
-      <Route path="/login">
-        {userRole ? <Redirect to="/" /> : <LoginPage />}
+      <Route path={`${BASE}login`}>
+        {userRole ? <Redirect to={BASE} /> : <LoginPage />}
       </Route>
-      <Route path="/seller-details" component={SellerDetailsPage} />
-      <Route path="/courier-details" component={CourierDetailsPage} />
-      <Route path="/about" component={AboutPage} />
-      <Route path="/pricing" component={PricingPage} />
-      <Route path="/product" component={ProductPage} />
-      <Route path="/company" component={CompanyPage} />
-      <Route path="/tracking" component={TrackingPage} />
+      <Route path={`${BASE}seller-details`} component={SellerDetailsPage} />
+      <Route path={`${BASE}courier-details`} component={CourierDetailsPage} />
+      <Route path={`${BASE}about`} component={AboutPage} />
+      <Route path={`${BASE}pricing`} component={PricingPage} />
+      <Route path={`${BASE}product`} component={ProductPage} />
+      <Route path={`${BASE}company`} component={CompanyPage} />
+      <Route path={`${BASE}tracking`} component={TrackingPage} />
 
-      <Route path="/order" component={OrderPage} />
+      <Route path={`${BASE}order`} component={OrderPage} />
       
       <Route path="*">
-        {!userRole ? <Redirect to="/welcome" /> : (
+        {!userRole ? <Redirect to={`${BASE}welcome`} /> : (
           <Layout>
             <Switch>
               {userRole === 'temp_seller' && (
                 <>
-                  <Route path="/" component={OrderPage} />
-                  <Route path="/seller-packages" component={SellerPackagesPage} />
+                  <Route path={BASE} component={OrderPage} />
+                  <Route path={`${BASE}seller-packages`} component={SellerPackagesPage} />
                 </>
               )}
               {userRole === 'pro_seller' && (
                 <>
-                  <Route path="/" component={ProDashboardPage} />
-                  <Route path="/pro-order" component={ProOrderPage} />
-                  <Route path="/seller-packages" component={SellerPackagesPage} />
-                  <Route path="/wallet" component={WalletPage} />
+                  <Route path={BASE} component={ProDashboardPage} />
+                  <Route path={`${BASE}pro-order`} component={ProOrderPage} />
+                  <Route path={`${BASE}seller-packages`} component={SellerPackagesPage} />
+                  <Route path={`${BASE}wallet`} component={WalletPage} />
                 </>
               )}
               {(userRole === 'courier' || userRole === 'driver') && (
                 <>
-                  <Route path="/" component={DashboardPage} />
-                  <Route path="/dashboard" component={DashboardPage} />
-                  <Route path="/wallet" component={WalletPage} />
+                   <Route path={BASE} component={DashboardPage} />
+                   <Route path={`${BASE}dashboard`} component={DashboardPage} />
+                   <Route path={`${BASE}wallet`} component={WalletPage} />
                 </>
               )}
               {userRole === 'admin' && (
                 <>
-                  <Route path="/" component={AdminDashboardPage} />
-                  <Route path="/admin" component={AdminDashboardPage} />
+                   <Route path={BASE} component={AdminDashboardPage} />
+                   <Route path={`${BASE}admin`} component={AdminDashboardPage} />
                 </>
               )}
               {userRole === 'seller' && (
                 <>
-                  <Route path="/" component={OrderPage} />
-                  <Route path="/seller-packages" component={SellerPackagesPage} />
+                   <Route path={BASE} component={OrderPage} />
+                   <Route path={`${BASE}seller-packages`} component={SellerPackagesPage} />
                 </>
               )}
-              <Route path="/profile" component={ProfilePage} />
+               <Route path={`${BASE}profile`} component={ProfilePage} />
               <Route component={NotFound} />
             </Switch>
           </Layout>

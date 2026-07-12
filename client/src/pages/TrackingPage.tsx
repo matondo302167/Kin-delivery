@@ -47,6 +47,7 @@ function estimateMinutes(meters: number): number {
 
 export default function TrackingPage() {
   const [, setLocation] = useLocation();
+  const BASE = import.meta.env.BASE_URL || "/";
   const [searchId, setSearchId] = useState("");
   const [trackingData, setTrackingData] = useState<TrackingData | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -258,7 +259,7 @@ export default function TrackingPage() {
           <KolisaLogo size="sm" />
           <span className="text-xs font-bold text-primary ml-1">Tracking</span>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setLocation('/welcome')} className="text-gray-500 font-bold text-xs" data-testid="button-back">
+        <Button variant="ghost" size="sm" onClick={() => setLocation(`${BASE}welcome`)} className="text-gray-500 font-bold text-xs" data-testid="button-back">
           <ArrowLeft className="h-4 w-4 mr-1" /> Retour
         </Button>
       </header>

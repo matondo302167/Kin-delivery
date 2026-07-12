@@ -12,6 +12,7 @@ import KolisaLogo from "@/components/KolisaLogo";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
+  const BASE = import.meta.env.BASE_URL || "/";
   const { userRole } = useStore();
   const { setProfile, logout } = useStore();
   const { toast } = useToast();
@@ -24,7 +25,7 @@ export default function LoginPage() {
   // Empêcher les utilisateurs connectés d'accéder à cette page
   useEffect(() => {
     if (userRole) {
-      setLocation('/');
+      setLocation(BASE);
     }
   }, [userRole, setLocation]);
 
@@ -35,9 +36,9 @@ export default function LoginPage() {
 
     const handlePopState = (event: PopStateEvent) => {
       // Si un utilisateur essaie de revenir avec la flèche retour, rediriger vers la page d'accueil
-      if (userRole) {
-        setLocation('/');
-        window.history.replaceState(null, '', '/');
+        if (userRole) {
+        setLocation(BASE);
+        window.history.replaceState(null, '', BASE);
       }
     };
 
@@ -116,7 +117,7 @@ export default function LoginPage() {
 
       toast({ title: "Connexion réussie", description: `Bienvenue ${profile.fullName}!` });
 
-      setLocation('/');
+      setLocation(BASE);
     } catch (error) {
       toast({ title: "Compte introuvable", description: "Ce numéro n'est pas enregistré. Créez un compte.", variant: "destructive" });
     } finally {
@@ -127,7 +128,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
       <header className="p-6">
-        <Button variant="ghost" onClick={() => setLocation('/welcome')} className="flex items-center gap-2" data-testid="button-back">
+        <Button variant="ghost" onClick={() => setLocation(`${BASE}welcome`)} className="flex items-center gap-2" data-testid="button-back">
           <ArrowLeft className="h-4 w-4" /> Retour
         </Button>
       </header>
@@ -191,7 +192,7 @@ export default function LoginPage() {
 
             <div className="mt-8 text-center">
               <p className="text-gray-500 text-sm">Pas encore de compte?</p>
-              <Button variant="link" onClick={() => setLocation('/register')} className="text-primary font-bold" data-testid="link-register">Créer un compte</Button>
+                <Button variant="link" onClick={() => setLocation(`${BASE}register`)} className="text-primary font-bold" data-testid="link-register">Créer un compte</Button>
             </div>
           </CardContent>
         </Card>

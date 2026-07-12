@@ -8,6 +8,7 @@ import KolisaLogo from "@/components/KolisaLogo";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
+  const BASE = import.meta.env.BASE_URL || "/";
   const { userRole, setRole, profile, logout } = useStore();
 
   useEffect(() => {
@@ -21,7 +22,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }, [userRole, location]);
 
   if (!userRole || userRole === 'customer') {
-    return <Redirect to="/welcome" />;
+    return <Redirect to={`${BASE}welcome`} />;
   }
 
   const handleLogout = () => {
@@ -62,7 +63,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <KolisaLogo size="sm" subtitle={roleLabel} />
 
         <div className="flex items-center gap-3">
-          <Link href="/profile">
+          <Link href={`${BASE}profile`}>
             <button className="flex items-center gap-2 group transition-transform active:scale-95">
               <div className="text-right hidden sm:block">
                 <p className="text-xs font-black text-secondary leading-none">{profile?.name || 'Utilisateur'}</p>
@@ -86,11 +87,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-md">
         <div className="bg-secondary/95 backdrop-blur-lg border border-white/10 shadow-2xl rounded-[2rem] flex justify-around items-center h-16 px-4">
           {navItems.map((item) => {
-            const isActive = location === item.href;
+            const renderedHref = item.href.startsWith("/") ? `${BASE}${item.href.slice(1)}` : item.href;
+            const isActive = location === renderedHref;
             return (
               <button
-                key={item.href}
-                onClick={() => setLocation(item.href)}
+                key={renderedHref}
+                onClick={() => setLocation(renderedHref)}
                 className={cn(
                   "flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-300 relative",
                   isActive ? "text-primary scale-110" : "text-white/50"

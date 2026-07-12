@@ -6,12 +6,13 @@ import KolisaLogo from "@/components/KolisaLogo";
 
 export default function CourierDetailsPage() {
   const [, setLocation] = useLocation();
+  const BASE = import.meta.env.BASE_URL || "/";
 
   return (
     <div className="min-h-screen bg-white font-sans">
       <header className="bg-white border-b border-gray-100 px-6 md:px-20 py-4 flex items-center justify-between sticky top-0 z-50">
         <KolisaLogo size="sm" subtitle="Driver" />
-        <Button variant="ghost" onClick={() => setLocation('/welcome')} className="flex items-center gap-2">
+        <Button variant="ghost" onClick={() => setLocation(`${BASE}welcome`)} className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" /> Retour
         </Button>
       </header>
@@ -30,10 +31,10 @@ export default function CourierDetailsPage() {
               Devenez votre propre patron. Avec KOLISA, vous choisissez vos horaires et vous êtes payé chaque semaine pour vos livraisons.
             </p>
             <div className="flex gap-4">
-              <Button onClick={() => setLocation('/login')} className="bg-secondary text-white px-8 h-12 rounded-full font-bold">
+               <Button onClick={() => setLocation(`${BASE}login`)} className="bg-secondary text-white px-8 h-12 rounded-full font-bold">
                 Se connecter
               </Button>
-              <Button onClick={() => setLocation('/register')} variant="outline" className="px-8 h-12 rounded-full font-bold">
+               <Button onClick={() => setLocation(`${BASE}register`)} variant="outline" className="px-8 h-12 rounded-full font-bold">
                 Créer un compte
               </Button>
             </div>

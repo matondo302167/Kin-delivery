@@ -30,6 +30,7 @@ type RoleChoice = "pro_seller" | "courier";
 
 export default function RegisterPage() {
 	const [, setLocation] = useLocation();
+	const BASE = import.meta.env.BASE_URL || "/";
 	const { setProfile } = useStore();
 	const { toast } = useToast();
 	const [role, setSelectedRole] = useState<RoleChoice>("pro_seller");
@@ -155,7 +156,7 @@ export default function RegisterPage() {
 			});
 
 			setShowOtpStep(false);
-			setLocation("/");
+			setLocation(BASE);
 		} catch (error: any) {
 			toast({
 				title: "Erreur",
@@ -170,9 +171,9 @@ export default function RegisterPage() {
 	useEffect(() => {
 		// Rediriger les utilisateurs déjà connectés vers la page d'accueil
 		const user = localStorage.getItem("user");
-		if (user) {
-			setLocation("/");
-		}
+			if (user) {
+				setLocation(BASE);
+			}
 	}, [setLocation]);
 
 	// Bloquer la flèche retour du navigateur pour les pages d'authentification
@@ -183,10 +184,10 @@ export default function RegisterPage() {
 		const handlePopState = () => {
 			// Si un utilisateur essaie de revenir avec la flèche retour, rediriger vers la page d'accueil
 			const user = localStorage.getItem("user");
-			if (user) {
-				setLocation("/");
-				window.history.replaceState(null, "", "/");
-			}
+				if (user) {
+					setLocation(BASE);
+					window.history.replaceState(null, "", BASE);
+				}
 		};
 
 		window.addEventListener("popstate", handlePopState);
