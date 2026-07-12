@@ -1,0 +1,366 @@
+import crypto from "crypto";
+import { db } from "./db";
+import { pool } from "./db";
+import {
+  profiles, deliveries, transactions, driverDetails, driverLocations, cashoutRequests, otpVerifications,
+  type Profile, type InsertProfile,
+  type Delivery, type InsertDelivery,
+  type Transaction, type InsertTransaction,
+  type DriverDetails, type DriverLocation,
+  type CashoutRequest, type InsertCashoutRequest,
+} from "@shared/schema";
+import { eq, desc, and, sql, gt } from "drizzle-orm";
+
+export interface IStorage {
+  getProfile(id: string): Promise<Profile | undefined>;
+  getProfileByPhone(phone: string): Promise<Profile | undefined>;
+  createProfile(profile: InsertProfile): Promise<Profile>;
+  createSellerWithDetails(profile: InsertProfile, shopName: string, shopAddress?: string, category?: string): Promise<Profile>;
+
+  getDelivery(id: string): Promise<Delivery | undefined>;
+  listDeliveries(filters?: { status?: string; sellerId?: string; driverId?: string }): Promise<Delivery[]>;
+  createDelivery(delivery: InsertDelivery & { otpCode: string }): Promise<Delivery>;
+  updateDeliveryStatus(id: string, status: string): Promise<Delivery>;
+  assignDriver(deliveryId: string, driverId: string): Promise<Delivery>;
+  updateDeliveryPhoto(deliveryId: string, photoUrl: string): Promise<Delivery>;
+  updateDeliveryRating(deliveryId: string, rating: number): Promise<Delivery>;
+
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  listTransactions(userId: string): Promise<Transaction[]>;
+
+  getDriverDetails(driverId: string): Promise<DriverDetails | undefined>;
+  updateDriverAvailability(driverId: string, isActive: boolean): Promise<DriverDetails>;
+  updateDriverLocation(driverId: string, lat: number, lng: number): Promise<DriverLocation>;
+  getDriverLocation(driverId: string): Promise<DriverLocation | undefined>;
+  getDeliveryWithDriver(deliveryId: string): Promise<(Delivery & { driverName?: string; driverPhone?: string; vehicleType?: string; vehicleColor?: string; driverAvatarUrl?: string; driverLat?: number; driverLng?: number }) | undefined>;
+
+  createCashoutRequest(request: InsertCashoutRequest): Promise<CashoutRequest>;
+  listCashoutRequests(filters?: { userId?: string; status?: string }): Promise<CashoutRequest[]>;
+  updateCashoutStatus(id: string, status: string, adminNote?: string): Promise<CashoutRequest>;
+
+  createOtpVerification(phoneNumber: string, otpCode: string): Promise<void>;
+  verifyOtp(phoneNumber: string, otpCode: string): Promise<boolean>;
+  markPhoneVerified(phoneNumber: string): Promise<void>;
+
+  listAllDriverLocations(): Promise<(DriverLocation & { driverName?: string; isActive?: boolean })[]>;
+  listAllProfiles(): Promise<Profile[]>;
+}
+
+export class DatabaseStorage implements IStorage {
+  async getProfile(id: string): Promise<Profile | undefined> {
+    const result = await db.select().from(profiles).where(eq(profiles.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getProfileByPhone(phone: string): Promise<Profile | undefined> {
+    const result = await db.select().from(profiles).where(eq(profiles.phoneNumber, phone)).limit(1);
+    return result[0];
+  }
+
+  async createProfile(profileData: InsertProfile): Promise<Profile> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const email = `${profileData.phoneNumber}@kolisa.app`;
+      const existingAuth = await client.query(
+        `SELECT id FROM auth.users WHERE email = $1 OR phone = $2 LIMIT 1`,
+        [email, profileData.phoneNumber]
+      );
+      
+      const userId = existingAuth.rows.length > 0 
+        ? existingAuth.rows[0].id 
+        : (profileData.id || crypto.randomUUID());
+      
+      if (existingAuth.rows.length === 0) {
+        await client.query(
+          `INSERT INTO auth.users (id, instance_id, aud, role, email, phone, encrypted_password, email_confirmed_at, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+           VALUES ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2, $3, '', NOW(), NOW(), NOW(), '', '', '', '')`,
+          [userId, email, profileData.phoneNumber]
+        );
+      }
+      
+      await client.query(
+        `INSERT INTO public.profiles (id, phone_number, full_name, role, avatar_url)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role
+         RETURNING *`,
+        [userId, profileData.phoneNumber, profileData.fullName || null, profileData.role || 'temp_seller', profileData.avatarUrl || null]
+      );
+      
+      await client.query('COMMIT');
+      
+      const result = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
+      return result[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async createSellerWithDetails(profileData: InsertProfile, shopName: string, shopAddress?: string, category?: string): Promise<Profile> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const email = `${profileData.phoneNumber}@kolisa.app`;
+      const existingAuth = await client.query(
+        `SELECT id FROM auth.users WHERE email = $1 OR phone = $2 LIMIT 1`,
+        [email, profileData.phoneNumber]
+      );
+      
+      const userId = existingAuth.rows.length > 0 
+        ? existingAuth.rows[0].id 
+        : (profileData.id || crypto.randomUUID());
+      
+      if (existingAuth.rows.length === 0) {
+        await client.query(
+          `INSERT INTO auth.users (id, instance_id, aud, role, email, phone, encrypted_password, email_confirmed_at, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+           VALUES ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2, $3, '', NOW(), NOW(), NOW(), '', '', '', '')`,
+          [userId, email, profileData.phoneNumber]
+        );
+      }
+      
+      await client.query(
+        `INSERT INTO public.profiles (id, phone_number, full_name, role, avatar_url)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role`,
+        [userId, profileData.phoneNumber, profileData.fullName || null, profileData.role || 'temp_seller', profileData.avatarUrl || null]
+      );
+
+      await client.query(
+        `INSERT INTO public.seller_details (profile_id, shop_name, business_address, category)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (profile_id) DO UPDATE SET shop_name = EXCLUDED.shop_name, business_address = EXCLUDED.business_address, category = EXCLUDED.category`,
+        [userId, shopName, shopAddress || null, category || null]
+      );
+      
+      await client.query('COMMIT');
+      
+      const result = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
+      return result[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getDelivery(id: string): Promise<Delivery | undefined> {
+    const result = await db.select().from(deliveries).where(eq(deliveries.id, id)).limit(1);
+    return result[0];
+  }
+
+  async listDeliveries(filters?: { status?: string; sellerId?: string; driverId?: string }): Promise<Delivery[]> {
+    const conditions = [];
+    if (filters?.status) {
+      conditions.push(eq(deliveries.status, filters.status));
+    }
+    if (filters?.sellerId) {
+      conditions.push(eq(deliveries.sellerId, filters.sellerId));
+    }
+    if (filters?.driverId) {
+      conditions.push(eq(deliveries.driverId, filters.driverId));
+    }
+
+    let query = db.select().from(deliveries);
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+
+    return query.orderBy(desc(deliveries.createdAt));
+  }
+
+  async createDelivery(deliveryData: InsertDelivery & { otpCode: string }): Promise<Delivery> {
+    const result = await db.insert(deliveries).values(deliveryData).returning();
+    return result[0];
+  }
+
+  async updateDeliveryStatus(id: string, status: string): Promise<Delivery> {
+    const result = await db.update(deliveries)
+      .set({ status })
+      .where(eq(deliveries.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async assignDriver(deliveryId: string, driverId: string): Promise<Delivery> {
+    const result = await db.update(deliveries)
+      .set({ driverId, status: 'in_transit' })
+      .where(eq(deliveries.id, deliveryId))
+      .returning();
+    return result[0];
+  }
+
+  async updateDeliveryPhoto(deliveryId: string, photoUrl: string): Promise<Delivery> {
+    const result = await db.update(deliveries)
+      .set({ proofImageUrl: photoUrl })
+      .where(eq(deliveries.id, deliveryId))
+      .returning();
+    return result[0];
+  }
+
+  async updateDeliveryRating(deliveryId: string, rating: number): Promise<Delivery> {
+    const result = await db.update(deliveries)
+      .set({ driverRating: rating })
+      .where(eq(deliveries.id, deliveryId))
+      .returning();
+    return result[0];
+  }
+
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const result = await db.insert(transactions).values(transaction).returning();
+    return result[0];
+  }
+
+  async listTransactions(userId: string): Promise<Transaction[]> {
+    return db.select().from(transactions)
+      .where(eq(transactions.userId, userId))
+      .orderBy(desc(transactions.createdAt));
+  }
+
+  async getDriverDetails(driverId: string): Promise<DriverDetails | undefined> {
+    const result = await db.select().from(driverDetails).where(eq(driverDetails.profileId, driverId)).limit(1);
+    return result[0];
+  }
+
+  async updateDriverAvailability(driverId: string, isActive: boolean): Promise<DriverDetails> {
+    const existing = await this.getDriverDetails(driverId);
+    if (!existing) {
+      const result = await db.insert(driverDetails).values({
+        profileId: driverId,
+        vehicleType: 'moto',
+        isActive,
+      }).returning();
+      return result[0];
+    }
+    const result = await db.update(driverDetails)
+      .set({ isActive })
+      .where(eq(driverDetails.profileId, driverId))
+      .returning();
+    return result[0];
+  }
+
+  async updateDriverLocation(driverId: string, lat: number, lng: number): Promise<DriverLocation> {
+    const existing = await this.getDriverLocation(driverId);
+    if (!existing) {
+      const result = await db.insert(driverLocations).values({
+        driverId,
+        latitude: lat,
+        longitude: lng,
+      }).returning();
+      return result[0];
+    }
+    const result = await db.update(driverLocations)
+      .set({ latitude: lat, longitude: lng, updatedAt: new Date() })
+      .where(eq(driverLocations.driverId, driverId))
+      .returning();
+    return result[0];
+  }
+
+  async getDriverLocation(driverId: string): Promise<DriverLocation | undefined> {
+    const result = await db.select().from(driverLocations).where(eq(driverLocations.driverId, driverId)).limit(1);
+    return result[0];
+  }
+
+  async getDeliveryWithDriver(deliveryId: string): Promise<(Delivery & { driverName?: string; driverPhone?: string; vehicleType?: string; vehicleColor?: string; driverAvatarUrl?: string; driverLat?: number; driverLng?: number }) | undefined> {
+    const delivery = await this.getDelivery(deliveryId);
+    if (!delivery) return undefined;
+    
+    if (!delivery.driverId) return { ...delivery };
+    
+    const driverProfile = await this.getProfile(delivery.driverId);
+    const driverDet = await this.getDriverDetails(delivery.driverId);
+    const driverLoc = await this.getDriverLocation(delivery.driverId);
+    
+    return {
+      ...delivery,
+      driverName: driverProfile?.fullName || undefined,
+      driverPhone: driverProfile?.phoneNumber || undefined,
+      vehicleType: driverDet?.vehicleType || undefined,
+      vehicleColor: driverDet?.vehicleColor || undefined,
+      driverAvatarUrl: driverProfile?.avatarUrl || undefined,
+      driverLat: driverLoc?.latitude || undefined,
+      driverLng: driverLoc?.longitude || undefined,
+    };
+  }
+  async createCashoutRequest(request: InsertCashoutRequest): Promise<CashoutRequest> {
+    const result = await db.insert(cashoutRequests).values(request).returning();
+    return result[0];
+  }
+
+  async listCashoutRequests(filters?: { userId?: string; status?: string }): Promise<CashoutRequest[]> {
+    const conditions = [];
+    if (filters?.userId) {
+      conditions.push(eq(cashoutRequests.userId, filters.userId));
+    }
+    if (filters?.status) {
+      conditions.push(eq(cashoutRequests.status, filters.status));
+    }
+    let query = db.select().from(cashoutRequests);
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    return query.orderBy(desc(cashoutRequests.createdAt));
+  }
+
+  async updateCashoutStatus(id: string, status: string, adminNote?: string): Promise<CashoutRequest> {
+    const result = await db.update(cashoutRequests)
+      .set({ status, adminNote: adminNote || null, resolvedAt: new Date() })
+      .where(eq(cashoutRequests.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async createOtpVerification(phoneNumber: string, otpCode: string): Promise<void> {
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await db.insert(otpVerifications).values({ phoneNumber, otpCode, expiresAt });
+  }
+
+  async verifyOtp(phoneNumber: string, otpCode: string): Promise<boolean> {
+    const result = await db.select().from(otpVerifications)
+      .where(and(
+        eq(otpVerifications.phoneNumber, phoneNumber),
+        eq(otpVerifications.otpCode, otpCode),
+        eq(otpVerifications.verified, false),
+        gt(otpVerifications.expiresAt, new Date())
+      ))
+      .orderBy(desc(otpVerifications.createdAt))
+      .limit(1);
+    if (result.length === 0) return false;
+    await db.update(otpVerifications)
+      .set({ verified: true })
+      .where(eq(otpVerifications.id, result[0].id));
+    return true;
+  }
+
+  async markPhoneVerified(phoneNumber: string): Promise<void> {
+    await db.update(profiles)
+      .set({ isVerified: true })
+      .where(eq(profiles.phoneNumber, phoneNumber));
+  }
+
+  async listAllDriverLocations(): Promise<(DriverLocation & { driverName?: string; isActive?: boolean })[]> {
+    const locations = await db.select().from(driverLocations);
+    const result = [];
+    for (const loc of locations) {
+      const profile = await this.getProfile(loc.driverId);
+      const details = await this.getDriverDetails(loc.driverId);
+      result.push({
+        ...loc,
+        driverName: profile?.fullName || undefined,
+        isActive: details?.isActive ?? false,
+      });
+    }
+    return result;
+  }
+
+  async listAllProfiles(): Promise<Profile[]> {
+    return db.select().from(profiles).orderBy(desc(profiles.createdAt));
+  }
+}
+
+export const storage = new DatabaseStorage();
