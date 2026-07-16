@@ -47,12 +47,16 @@ export default defineConfig({
        strict: true,
        deny: ["**/.*"],
      },
-     proxy: {
-       "/api": {
-         target: `http://127.0.0.1:${process.env.PORT || 3001}`,
-         changeOrigin: true,
-         secure: false,
-       },
-     },
+      proxy: {
+        "/api": {
+          // proxy API requests to the backend. Use PORT if provided, otherwise
+          // default to 5000 (matches server/index.ts default). Previously the
+          // fallback was 3001 which could cause ECONNREFUSED when the server
+          // listens on 5000.
+          target: `http://${process.env.BACKEND_HOST || "127.0.0.1"}:${process.env.PORT || 5000}`,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
    },
 });
