@@ -6,7 +6,8 @@ WORKDIR /app
 
 # install deps for build
 COPY package.json package-lock.json* ./
-RUN npm ci --silent
+# prefer `npm ci` but skip optional native deps that fail in alpine; fall back to npm install
+RUN npm ci --no-optional --silent || npm install --no-optional --silent
 
 # copy source and run the project build (script/build.ts builds the client + server)
 COPY . .
