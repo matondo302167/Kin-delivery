@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 # use Debian-slim base so native optional binaries (rollup, etc.) install correctly
 # prefer `npm ci` for reproducible installs
-RUN npm ci --silent
+RUN npm ci
 
 # copy source and run the project build (script/build.ts builds the client + server)
 COPY . .
