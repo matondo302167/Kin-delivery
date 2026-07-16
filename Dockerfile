@@ -1,20 +1,21 @@
 # Multi-stage Dockerfile: build everything, then serve from Node server
 
 # --- build stage -----------------------------------------------------------
-FROM node:18-alpine AS build
+FROM node:18-slim AS build
 WORKDIR /app
 
 # install deps for build
 COPY package.json package-lock.json* ./
-# prefer `npm ci` but skip optional native deps that fail in alpine; fall back to npm install
-RUN npm ci --no-optional --silent || npm install --no-optional --silent
+# use Debian-slim base so native optional binaries (rollup, etc.) install correctly
+# prefer `npm ci` for reproducible installs
+RUN npm ci --silent
 
 # copy source and run the project build (script/build.ts builds the client + server)
 COPY . .
 RUN npm run build
 
 # --- production server (serves both API and frontend assets) ---------------
-FROM node:18-alpine
+FROM node:18-slim
 
 WORKDIR /app
 ENV NODE_ENV=production
