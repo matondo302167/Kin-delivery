@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile: build everything, then serve from Node server
 
 # --- build stage -----------------------------------------------------------
-FROM node:18-slim AS build
+FROM node:20-slim AS build
 WORKDIR /app
 
 # install deps for build
