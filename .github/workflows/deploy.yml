@@ -29,6 +29,8 @@ jobs:
         env:
           # Set the Vite base to the repo name so assets are served correctly on GitHub Pages
           VITE_BASE: "/${{ github.event.repository.name }}/"
+          # Backend API base (set this secret in repository secrets as VITE_API_BASE)
+          VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
         run: npm run build
 
       - name: Ensure SPA fallback (404 -> index)

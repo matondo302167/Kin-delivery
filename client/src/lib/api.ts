@@ -1,6 +1,6 @@
 import type { Delivery, Profile, Transaction, CashoutRequest } from "@shared/schema";
 
-const API_BASE = "/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
 export async function getProfile(id: string): Promise<Profile> {
   const res = await fetch(`${API_BASE}/profiles/${id}`);
