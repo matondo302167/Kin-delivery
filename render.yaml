@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: kolisa-backend
+    env: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: node dist/index.cjs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "5000"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: SUPABASE_DATABASE_URL
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
