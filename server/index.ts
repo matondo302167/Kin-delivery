@@ -27,6 +27,22 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Allow cross-origin requests so the frontend served from GitHub Pages
+// (or any external host) can call the API. In production you can restrict
+// this to specific origins using CORS or the CORS_ORIGINS env var.
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", process.env.CORS_ORIGINS || "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type,Authorization,Origin,Accept"
+  );
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
