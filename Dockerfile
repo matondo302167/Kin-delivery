@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 # use Debian-slim base so native optional binaries (rollup, etc.) install correctly
 # prefer `npm ci` for reproducible installs
-RUN npm ci
+RUN npm ci || npm install --no-audit --no-fund --prefer-offline
 
 # copy source and run the project build (script/build.ts builds the client + server)
 COPY . .
@@ -23,7 +23,7 @@ ENV NODE_ENV=production
 # copy built artifacts and install only production deps
 COPY --from=build /app/dist ./dist
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production --silent || true
+RUN npm ci --only=production --silent || npm install --only=production --no-audit --no-fund --prefer-offline || true
 
 EXPOSE 5000
 CMD ["node", "dist/index.cjs"]
