@@ -37,6 +37,9 @@ app.use((req, res, next) => {
     "Access-Control-Allow-Headers",
     "Content-Type,Authorization,Origin,Accept"
   );
+  // Disable ETag to prevent 304 Not Modified responses (which break JSON parsing
+  // when frontend and backend are on different origins via Cloudflare/proxies)
+  res.removeHeader("ETag");
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
   }
